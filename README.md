@@ -72,6 +72,7 @@ results/                   Committed evaluation outputs
 tests/                     Pytest suite (deterministic, no LLM needed)
 utils/                     Shared parsing and hashing helpers
 FYP/                       Proposal, presentations, Gantt chart, supervisor feedback
+design/                    Frontend design: animated UI mockup + design system, motion and screen specs
 docs/                      Background notes and archived material
 
 backend/                   (planned) FastAPI service, WebSocket stream, PostgreSQL models
@@ -144,6 +145,7 @@ Three setups run on the same data: **no defense**, a **prompt-level defense** (S
 | [Design.md](Design.md) | Why the system is built this way |
 | [Rules.md](Rules.md) | Rules every contributor must follow |
 | [Phase.md](Phase.md) | Project phases, timeline and task checklist |
+| [design/](design/README.md) | Frontend design: animated mockup, design system, motion spec, screen specs, React plan |
 | [FYP/](FYP/) | Proposal, presentation, Gantt chart and supervisor feedback |
 
 ## Timeline

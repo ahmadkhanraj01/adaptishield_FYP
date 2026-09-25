@@ -61,7 +61,9 @@ Phase 6                                                        ███
 - [ ] **REST API contract** (OpenAPI draft) for every endpoint in [Architecture.md](Architecture.md) §6
 - [ ] **WebSocket event schema** for per-stage verdicts ([Architecture.md](Architecture.md) §7)
 - [ ] **Database schema** (ER diagram) for episodes, stage verdicts, attacks, proposals, approvals, users ([Architecture.md](Architecture.md) §8)
-- [ ] UI wireframes for every page (Figma or hand-drawn): Monitor, Replay, Attack Lab, Admin Console, Analytics, Login
+- [x] Animated UI mockup: Live Monitor + Attack Lab ([design/](design/README.md))
+- [x] Design system, motion spec and screen specs ([design/](design/README.md))
+- [ ] Mockups for the remaining screens: Admin Console, Analytics, Demo Agent, Login ([design/screens.md](design/screens.md))
 
 ### 1.3 Project setup
 - [ ] Repository structure created: `backend/`, `agent/`, `attack_lab/`, `frontend/`
@@ -142,6 +144,7 @@ Phase 6                                                        ███
 
 ### 4.1 Frontend foundation
 - [ ] Stack: **React + Vite**, **Tailwind CSS**, **Recharts**, React Router, TanStack Query (REST), native WebSocket client with auto-reconnect
+- [ ] Follow [design/react-migration.md](design/react-migration.md): tokens, component map, event fixtures, build order
 - [ ] Shared components: stage badge, verdict chip, episode card, data table, chart card
 - [ ] Role-based navigation (Tester / Analyst / Admin)
 - [ ] Light and dark theme; usable on a laptop screen and a projector
