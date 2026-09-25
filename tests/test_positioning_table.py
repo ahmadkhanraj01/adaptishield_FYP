@@ -29,9 +29,9 @@ import os
 import pytest
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SCRIPT = os.path.join(REPO, "paper", "make_positioning_table.py")
-EXTERNAL = os.path.join(REPO, "paper", "external_numbers.json")
-SECTION = os.path.join(REPO, "paper", "10-positioning.md")
+SCRIPT = os.path.join(REPO, "docs", "paper", "make_positioning_table.py")
+EXTERNAL = os.path.join(REPO, "docs", "paper", "external_numbers.json")
+SECTION = os.path.join(REPO, "docs", "paper", "10-positioning.md")
 
 
 def _load_module():

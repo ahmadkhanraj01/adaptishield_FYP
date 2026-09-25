@@ -25,8 +25,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
-REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-FIGDIR = os.path.join(REPO, "paper", "figures")
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+FIGDIR = os.path.join(REPO, "docs", "paper", "figures")
 
 BLUE   = "#0072B2"
 ORANGE = "#D55E00"

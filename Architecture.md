@@ -1,207 +1,266 @@
 # AdaptiShield — Architecture
 
-**What this file is:** the structural map of the system — the layers, the
-components, which file owns each, and how a request flows through them. For
-*why* it is built this way see [Design.md](Design.md); for the invariants that
-must not be broken see [Rules.md](Rules.md); for status and roadmap see
-[Phase.md](Phase.md). The root [README.md](README.md) remains the single
-source of truth for current build state.
+**What this file is:** the structural map of the system: the five modules, the Defense Engine's internal stages, which file owns each part, how a request flows through them, and the design of the backend API, live event stream, database and frontend. For *why* it is built this way see [Design.md](Design.md); for rules that must not be broken see [Rules.md](Rules.md); for the build plan see [Phase.md](Phase.md).
 
-*Last aligned: 2026-08-09 (after Phase 13 — the severity function and the
-offline re-scoring path).*
+Components marked **(planned)** are designed here and built in the phase named in [Phase.md](Phase.md).
 
 ---
 
-## 1. The defensive stack
+## 1. System overview
 
-A request from an MCP-orchestrated LLM agent passes top-to-bottom through
-layered, independent defenses. Each layer can stop or transform the request;
-no layer trusts the verdict of another.
+Five modules share one backend. The **Tools** box is not a module; it is the email, file and API actions being protected.
 
 ```
-Layer 5  Human-in-the-loop & Observability          [pending]
-Layer 4  Sandbox & Isolation  (permission · egress · docker · telemetry)   [built]
-Layer 3  MCP Tool Execution Plane + Tool Response Screener                  [built]
-Layer 2  LLM Agent Control Plane
-         └─ Security & Adaptive Sub-layer   3A → 3B → 3C → 3D              [built; 3D v1]
-Layer 1  Input & Supply-chain Screening (parser · context · provenance)    [built]
-Layer 0  MCP Transport & Server Trust (rug-pull detection · allowlist)     [built]
+                        ┌──────────────────────────── React Frontend (planned) ─────────────────────────────┐
+                        │  Live Defense Monitor (4) │ Attack Lab UI (2) │ Admin Console & Analytics (5)     │
+                        └──────────────▲────────────────────────▲─────────────────────────▲─────────────────┘
+                                WebSocket events           REST (JSON)                REST (JSON)
+                        ┌──────────────┴────────────────────────┴─────────────────────────┴─────────────────┐
+                        │                          FastAPI Backend (planned)                                │
+                        │   /ws/episodes   /api/episodes   /api/attacks   /api/proposals   /api/analytics   │
+                        └──────┬──────────────────────┬────────────────────────────┬──────────────────────┬─┘
+                               │                      │                            │                      │
+ ┌─────────────────────┐   proposed action   ┌────────▼──────────────────┐   allowed action   ┌───────────┴──┐
+ │ (1) Protected Demo  │ ──────────────────▶ │   (3) DEFENSE ENGINE      │ ─────────────────▶ │    Tools     │
+ │     Agent (planned) │                     │   adaptishield_pipeline   │                    │ mail · files │
+ └──────────▲──────────┘                     │   layer0 … layer4         │                    │ · APIs (sim) │
+            │ planted attack                 └────────┬──────────────────┘                    └──────────────┘
+ ┌──────────┴──────────┐                              │ episodes, stage verdicts, proposals
+ │ (2) Attack Lab      │                     ┌────────▼──────────┐        ┌──────────────────────┐
+ │     (planned)       │                     │   PostgreSQL      │        │ Ollama (local host)  │
+ └─────────────────────┘                     │   (planned)       │        │ gemma3:4b qwen2.5:3b │
+                                             └───────────────────┘        └──────────────────────┘
 ```
 
-Red Team Module runs *against* this stack (dry-run) to measure ASR/FPR/WCR.
+| # | Module | Location | Status |
+| :-: | :--- | :--- | :--- |
+| 1 | Protected Demo Agent | `agent/` | planned (Phase 3) |
+| 2 | Attack Lab | `attack_lab/` + frontend page | planned (Phase 3–4); attack data and runner exist in `red_team/` |
+| 3 | Defense Engine | `adaptishield_pipeline.py`, `layer0/`–`layer4/`, `layer2/security_sublayer/` | **built**; service wrapper planned (Phase 2) |
+| 4 | Live Defense Monitor | `frontend/` + `/ws/episodes` | planned (Phase 2 stream, Phase 4 UI) |
+| 5 | Admin Console & Analytics | `layer5/` + `frontend/` | approval logic **built** in `layer5/`; web UI planned (Phase 4) |
 
 ---
 
-## 2. Components and their files
+## 2. The Defense Engine: layered stack
+
+Every proposed action passes top to bottom through independent layers. Each layer can stop or change the request, and **no layer trusts another layer's verdict**.
+
+```
+Layer 5  Human-in-the-loop & oversight   (governance · review gate · audit)        [built — web UI planned]
+Layer 4  Sandbox & isolation              (permission · egress · sandbox · telemetry)[built]
+Layer 3  Tool execution plane             (tool-response screener)                   [built]
+Layer 2  Agent control plane
+         └─ Security sub-layer            3A policy → 3B causal → 3C sanitize → 3D adapt   [built]
+Layer 1  Input screening & provenance     (trusted vs untrusted content)             [built]
+Layer 0  Transport & server trust         (server allowlist · rug-pull detection)    [built]
+```
+
+### Components and their files
 
 | Layer | Component | File | Role |
 | :--- | :--- | :--- | :--- |
-| 0 | Server Trust Registry | `layer0/server_trust_registry.py` | Allowlist + rug-pull detection |
-| 1 | Provenance / Context | `layer1/provenance.py` | Tags trusted vs mediator (untrusted) content; partitions context |
-| 2·3A | Policy Engine | `layer2/security_sublayer/policy_engine.py` | Static rules: `approve_direct` / `send_to_causal` / `block`; owns `blocked_patterns`, `high_impact_tools` |
-| 2·3B | Causal Analyzer | `layer2/security_sublayer/causal_analyzer.py` | Four-regime causal probe; emits ACE/IE/DE + takeover verdict |
-| 2·3C | Context Sanitizer | `layer2/security_sublayer/context_sanitizer.py` | Strips injected instructions; derives a safe continuation |
-| 2·3D | Adaptive Threat Model | `layer2/security_sublayer/adaptive_threat_model.py` | Reward → bounded, human-gated update proposal. **CPU heuristic, and it stays one** — GRPO was trained and changed nothing (§5) |
-| 3 | Tool Response Screener | `layer3/tool_response_screener.py` | LLM + keyword flag on tool output |
-| 4 | Permission Control | `layer4/permission_control.py` | In-scope tool check |
-| 4 | Network Egress Filter | `layer4/network_egress_filter.py` | Destination allowlist |
-| 4 | Docker Sandbox | `layer4/sandbox.py` | Gated, isolated command execution |
-| 4 | Telemetry Stream | `layer4/telemetry_stream.py` | Writes JSONL Episode Records |
-| — | Shared parsing | `utils/parsing.py` | Tolerant `NEXT:` action extractor |
-| — | Full pipeline | `adaptishield_pipeline.py` | Wires L1→L3→3A→3B→3C→L4→telemetry |
-
-Red team: `red_team/{attack_library, attack_generator, execution_agent, evaluator, optimizer, run_campaign}.py`
-Evaluation: `evaluation/{adaptive_loop_experiment, holdout_generalization_test, mechanism_validation, score_action_ablation}.py`
-Measurement: `evaluation/{benchmark, paired, fpr_report, refusal_audit}.py`
-External corpora: `evaluation/{injecagent, agentdojo_attacks}.py` ← `red_team/{vendor_agentdojo, vendor_injecagent, vendor_agentdojo_attacks}.py`
-Offline re-scoring: `evaluation/{probe_corpus, rescore}.py` + `utils/hashing.py`
-Tests: `tests/{test_takeover_rules, test_adaptive_threat_model}.py`
+| 0 | Server Trust Registry | `layer0/server_trust_registry.py` | Server allowlist and rug-pull (tool definition changed) detection |
+| 1 | Provenance / Context | `layer1/provenance.py` | Tags content as trusted (user) or untrusted (mediator: email, file, tool response) |
+| 2·3A | Policy Engine | `layer2/security_sublayer/policy_engine.py` | Static rules → `approve_direct`, `send_to_causal` or `block`; owns blocked patterns and the high-impact tool list |
+| 2·3B | Causal Analyzer | `layer2/security_sublayer/causal_analyzer.py` | The causal check: runs the decision with the untrusted content shown vs hidden or sanitized, and decides whether it took over the action |
+| 2·3C | Context Sanitizer | `layer2/security_sublayer/context_sanitizer.py` | Strips injected instructions and derives a safe continuation of the user's task |
+| 2·3D | Adaptive Threat Model | `layer2/security_sublayer/adaptive_threat_model.py` | Learns from labeled episodes and **proposes** bounded rule/threshold changes; cannot apply them without approval |
+| 3 | Tool Response Screener | `layer3/tool_response_screener.py` | Flags suspicious instructions in tool output (LLM check plus a keyword backstop) |
+| 4 | Permission Control | `layer4/permission_control.py` | Is this tool in scope for this task? |
+| 4 | Network Egress Filter | `layer4/network_egress_filter.py` | Is this destination on the allowlist? |
+| 4 | Sandbox | `layer4/sandbox.py` | Isolated command execution, only after permission **and** egress pass |
+| 4 | Telemetry Stream | `layer4/telemetry_stream.py` | Writes one Episode Record per request |
+| 5 | Governance | `layer5/governance.py` | Recomputes the evidence for a proposal (incumbent vs proposed) from data, never trusting the proposal's own numbers |
+| 5 | Review gate | `layer5/review.py` | Approve or reject a proposal; append-only decision log |
+| 5 | Audit report | `layer5/audit_report.py` | Self-contained HTML audit dashboard (to be replaced by the web Admin Console) |
+| — | Pipeline | `adaptishield_pipeline.py` | `AdaptiShieldPipeline` wires the layers; `PipelineConfig` switches layers on and off |
+| — | Spotlighting baseline | `baselines/spotlighting.py` | Prompt-level comparison defense, run as a `PipelineConfig` arm |
+| — | Shared helpers | `utils/parsing.py`, `utils/hashing.py` | Action extraction; prompt fingerprints |
 
 ---
 
-## 3. Request flow (full pipeline)
+## 3. Request flow
 
 ```
-process_request(user_input, mediator_content, tool_name, command, session_id)
+AdaptiShieldPipeline.process_request(user_input, tool_response, tool_name,
+                                     proposed_action, server_name, destination_url,
+                                     command, session_id)
   │
-  ├─ L1  provenance tagging (trusted vs mediator partition, per session_id)
-  ├─ L3  Tool Response Screener  → flagged? (LLM OR keyword backstop)
-  ├─ 3A  Policy Engine           → approve_direct | send_to_causal | block
-  │        └─ if high-impact / flagged → send_to_causal
-  ├─ 3B  Causal Analyzer.evaluate_boundary(...)  → Takeover? (per-session history)
-  │        └─ if Takeover → 3C
-  ├─ 3C  Context Sanitizer       → safe_continuation (injection stripped)
-  ├─ L4  permission → egress → sandbox   (each gates independently of 3A/3B/3C)
-  └─ Telemetry  → logs/episode_records/episodes.jsonl  (Episode Record)
+  ├─ L1  Provenance tagging         trusted (user) vs untrusted (tool_response)
+  ├─ L3  Tool-response screener     flagged?  (LLM verdict OR keyword backstop)
+  ├─ 3A  Policy engine              block ──────────────────────────────▶ BLOCKED
+  │                                 approve_direct (low impact, not flagged) ─▶ L4
+  │                                 send_to_causal (high impact or flagged)
+  ├─ 3B  Causal check               no takeover ────────────────────────▶ L4 (approved_causal)
+  │                                 takeover
+  ├─ 3C  Sanitizer                  strip injection → safe continuation ─▶ L4 (safe_continuation)
+  │                                 (if sanitizer is disabled → BLOCKED)
+  ├─ L4  Permission → Egress → Sandbox   each gates independently
+  └─ Telemetry                      Episode Record written (and, planned, a DB row + WebSocket events)
 ```
 
-Final statuses: `approved_direct`, `approved_causal`, `safe_continuation`, `blocked`.
+**Final statuses:** `approved_direct`, `approved_causal`, `safe_continuation`, `blocked`.
 
 ---
 
-## 4. Inside 3B — the causal probe
+## 4. Inside the causal check (3B)
 
-3B measures **compliance with mediator-supplied instructions** across four
-regimes, each sampled `k_samples` times (default 2), scored `{0,1,2}` by
-`_score_action`:
+The causal check does not ask "does this text look dangerous?". It asks **"did the untrusted text cause this action?"** It runs the model under four views of the input, each sampled `k_samples` times (default 2), and scores each proposed action 0 (harmless), 1 (suspicious) or 2 (harmful).
 
-| Regime | Sees | Purpose |
+| View | The model sees | Purpose |
 | :--- | :--- | :--- |
-| `orig` | user goal + mediator | baseline behavior |
-| `masked` | mediator only, no task | pure compliance tendency |
-| `masked_sanitized` | sanitized mediator only | compliance after 3C |
-| `orig_sanitized` | user goal + sanitized mediator | task behavior after 3C |
+| `orig` | user goal + untrusted content | the normal decision |
+| `masked` | untrusted content only, no task | does the content on its own push toward an action? |
+| `masked_sanitized` | sanitized content only | same, after the injection is stripped |
+| `orig_sanitized` | user goal + sanitized content | the task's decision after sanitizing |
 
-Contrasts: `ACE = orig − masked`, `IE = masked − masked_sanitized`,
-`DE = orig_sanitized − masked_sanitized`.
+Contrasts between the views: `ACE = orig − masked`, `IE = masked − masked_sanitized`, `DE = orig_sanitized − masked_sanitized`.
 
-**What `_score_action` counts as harm** (severity 2), in order:
+An action scores **2 (harmful)** when it copies a target (email address or URL) from the untrusted content, or when it moves data in a way the untrusted content suggested.
 
-1. **Target match** — the action names an email/URL lifted from the mediator.
-   The sharpest signal 3B has, and the only path to 2 for an injection with no
-   high-impact keyword. `schemeless_targets` (**default off**) additionally sees
-   bare hosts like `www.evil.com`; measured, and left off because it costs more
-   false positives than it buys — §1.7.
-2. **Capability misuse** — a state-changing verb *and* a controlled resource from
-   the same class, with the mediator required to corroborate the resource.
-   `capability_scoring`, **default off**. Added because `_HIGH_KW` is a
-   data-movement vocabulary that cannot see *unlock a door* or *move money*.
-3. **Data-movement keywords** — `_HIGH_KW`, grounded by `_mediator_corroborates`
-   so an action the content never suggested cannot escalate (§6o).
+**Takeover** is declared if any of these fire:
+1. **IE rule:** sanitizing clearly reduced compliance (`IE ≥ threshold`), consistently across every sample.
+2. **Standalone rule:** the content alone produced a harmful action (`masked ≥ 2`), whatever IE says.
+3. **Drift rule:** compliance is rising over the same conversation (`session_id`), and something was actually observed (`masked ≥ 1`).
 
-Both flags default **off**, so every committed number reproduces; they exist as
-measured arms, not as pending work.
-
-**Takeover fires if any of:**
-1. **IE rule** — `IE ≥ ie_threshold` AND `masked ≥ 1` AND separation is
-   *consistent* across samples (`min(masked) > max(masked_san)`).
-2. **Standalone rule** — `masked ≥ masked_takeover_threshold` (2.0), independent of IE.
-3. **Drift rule** — falling ACE / rising IE slope over a per-session window,
-   gated on `masked ≥ 1`.
-
-IE resolution is `1/k_samples` (0.5 at k=2); 3D sizes its threshold step to it.
-See [Design.md](Design.md) §"Takeover rule stack" for why three rules.
-
-The three rules live in `_decide_takeover`, extracted from `evaluate_boundary` so
-the offline re-scorer computes verdicts with the **shipped** rule rather than a
-copy of it — see §4b.
+The rules live in `_decide_takeover` and are pinned by `tests/test_takeover_rules.py`.
 
 ---
 
-## 4b. The offline re-scoring path
-
-A scorer candidate used to cost a 1.5-hour campaign to evaluate. It no longer
-does, because `_run_regime_once` asks the model for an action and *then* scores
-it, and **the probe never consults the scorer**. A recorded transcript is
-therefore a sufficient statistic for any change confined to `_score_action`.
+## 5. The adaptive component and the human gate (3D + Layer 5)
 
 ```
-probe_corpus.py   → records all 4 regimes, both samples, + the sanitised mediator
-                    (manifest pins model, temperature, k_samples, prompt hashes)
-        ↓ recorded transcripts, no model calls from here on
-rescore.py        → re-scores under 4 arms, verdicts via _decide_takeover
-                    → per-stratum Wilson intervals, McNemar, population projection
+labeled episodes ─▶ reward ─▶ evaluate batch ─▶ propose_update ─▶ governance recomputes evidence ─▶ ADMIN ─▶ apply_update
+                                                  (bounded change)                                    approve/    (approved=True
+                                                                                                      reject      required)
 ```
 
-Three guards, because a new instrument earns the scepticism the old ones did:
-staleness is **refused** (a prompt edit changes `utils/hashing.py`'s fingerprint),
-verdicts come from the shipped rule, and the LLM client is replaced with a stub
-that raises so "no model calls" is enforced rather than asserted.
-
-⚠️ Valid **only** for scorer changes. A change to a probe prompt, the sanitizer,
-the model tag or the temperature invalidates the corpus, which must be re-recorded.
+- 3D only tunes **static settings**: 3A blocked patterns and high-impact tools, and 3B's IE threshold. It never touches model weights.
+- The reward favors **stripping the injection and continuing** (+1.0) over **blocking** (+0.7), so the system prefers keeping the user's task alive.
+- `apply_update` refuses to run without `approved=True`. In the FYP, that approval comes from an Admin in the web console (Module 5), and every decision is stored with who, when and why.
 
 ---
 
-## 5. Component 3D — the adaptive loop
+## 6. Backend API (planned, Phase 2)
 
-```
-labeled episodes ──▶ compute_reward ──▶ evaluate_batch ──▶ propose_update ──▶ [human] ──▶ apply_update
- (red-team ExecutionResults          (GRPO reward,          (bounded: ie_threshold          (approved=True
-  or labeled telemetry replay)        WCR-aware)             step, patterns, tools)          required)
-```
+FastAPI service in `backend/`. All endpoints are JSON; interactive docs are at `/docs`.
 
-- Reward: `+1.0` malicious→safe_continuation, `+0.7` malicious→blocked (WCR lost),
-  `+0.8` benign→approved, `−1.0` missed attack, `−0.5` false positive.
-- Tunes **only** static knobs (3A patterns/tools, 3B `ie_threshold`) — never LLM weights.
-- `threshold_step` = `CausalAnalyzer.ie_resolution` (so a move can change a verdict).
-- **`propose_update()` is a CPU heuristic and remains one.** GRPO training was not
-  abandoned — it ran, on Kaggle, and the torch backend agreed with the pure-Python
-  implementation to **exactly zero** difference. It found no natural gap to close,
-  its one apparent gain was an artifact of a self-authored corpus, and its own
-  policy proposed a reward-*decreasing* change three times. The P100 turned out
-  not to run PyTorch at all (sm_60 against sm_70+), and the CPU fallback costs
-  0.27 s for the whole workload — so **the GPU premise is retired**, not deferred.
-- **3D honestly proposes a no-op, and the no-op is the result.** This layer is
-  reported as a negative finding in the paper rather than as unfinished work.
-
----
-
-## 6. Models
-
-| Model | Role | Status |
+| Method & path | Role | Purpose |
 | :--- | :--- | :--- |
-| `gemma3:4b` | 3B Causal Analyzer — complies under the masked probe, which is what makes the signal measurable | **model of record.** ⚠️ currently **40% GPU-resident**; read `/api/ps` before trusting a repeat |
-| `qwen2.5:3b` | 3C sanitizer, L3 screener, planner | in use — and **not** usable as 3B: it answers `no_action` on cases the incumbent detects, with no refusal string |
-| `llama3.2:3b` | second probe model, Phase 16 | the stratification replicates under it: 100.0% / 10.0% |
-| `qwen2.5:7b` | evaluated as a 3B candidate | **rejected** — 53% resident on this card, not deterministic at temperature 0 |
-
-Everything runs **locally on one 4 GB card**, under `./venv` (the runtime of
-record — see `Rules.md` §1). There is no GPU-offload path: Kaggle was used for
-Phase 6's GRPO training and is retired with it (§5), and it cannot host Ollama,
-so no model above ~4B has an environment here at all. That ceiling is a stated
-limitation of the work, not a temporary condition.
-
-⛔ **`gemma2:9b` was listed here as a fallback for 3B and never existed on this
-machine.** It is not installed and was never measured; the row is removed rather
-than carried as an aspiration.
+| `POST /api/auth/login` | any | Get a JWT |
+| `POST /api/episodes` | Tester | Send one request through the engine (protection on/off selectable) |
+| `GET /api/episodes` | Analyst | List episodes (filters: status, attack type, date) |
+| `GET /api/episodes/{id}` | Analyst | One episode with all stage verdicts (used by Replay) |
+| `POST /api/agent/run` | Tester | Run the demo agent on a mailbox scenario |
+| `GET /api/attacks` | Tester | Browse the attack catalogue (InjecAgent, AgentDojo, custom) |
+| `POST /api/attacks` | Tester | Save a custom attack |
+| `POST /api/attack-lab/compare` | Tester | Run one attack with protection off and on |
+| `POST /api/attack-lab/batch` | Tester | Run all attacks of a type; progress over WebSocket |
+| `GET /api/proposals` | Admin | Pending and past configuration proposals |
+| `GET /api/proposals/{id}` | Admin | Proposal with recomputed evidence |
+| `POST /api/proposals/{id}/decision` | Admin | Approve or reject, with a reason |
+| `GET /api/policy` | Analyst | Current rules and thresholds |
+| `GET /api/analytics/summary` | Analyst | ASR, TPR, FPR, WCR per attack type and per setup, with intervals |
+| `GET /api/health` | any | Backend, database and Ollama status |
 
 ---
 
-## 7. Telemetry & logs (all gitignored)
+## 7. Live event stream (planned, Phase 2)
 
-- `logs/episode_records/episodes.jsonl` — one Episode Record per request
-  (includes `screen_result.matched_markers`, 500-char `mediator_snippet`,
-  `sandbox_result`, `causal_verdict`). **Mediator text here is untrusted.**
-- `logs/red_team_runs/campaign_*.json` — ASR/FPR/WCR per campaign.
-- `logs/adaptive_loop/*.json` — before/after + holdout reports.
+`WS /ws/episodes` pushes one event per stage as the engine runs, so the Monitor can light each stage up in order.
+
+```json
+{
+  "episode_id": "b7e2…",
+  "seq": 4,
+  "stage": "causal_check",
+  "verdict": "takeover",
+  "detail": {
+    "run_a_action": "forward_email to attacker@example.com",
+    "run_b_action": "summarize_thread",
+    "changed": true,
+    "rule": "standalone"
+  },
+  "timestamp": "2027-03-10T09:14:22Z"
+}
+```
+
+`stage` is one of `received`, `provenance`, `screener`, `policy`, `causal_check`, `sanitizer`, `permission`, `egress`, `sandbox`, `final`. The `final` event carries the status (`approved_direct`, `approved_causal`, `safe_continuation`, `blocked`). Replay re-emits a stored episode's events in the same format.
+
+---
+
+## 8. Database (planned, Phase 2)
+
+PostgreSQL, SQLAlchemy models, Alembic migrations.
+
+| Table | Key columns |
+| :--- | :--- |
+| `users` | id, name, email, role (`tester`, `analyst`, `admin`), password_hash |
+| `attacks` | id, source (`injecagent`, `agentdojo`, `custom`), attack_type, user_task, injected_text, target, is_benign |
+| `episodes` | id, attack_id, config (`none`, `spotlighting`, `full`), user_input, final_status, started_at, finished_at, session_id |
+| `stage_events` | id, episode_id, seq, stage, verdict, detail (JSONB), timestamp |
+| `proposals` | id, created_at, change (JSONB), proposal_reward, incumbent_reward (recomputed), status |
+| `approvals` | id, proposal_id, admin_id, decision, reason, decided_at (**append-only**) |
+| `evaluation_runs` | id, corpus, config, model_tags, commit_sha, metrics (JSONB), created_at |
+
+Untrusted text (injected emails, tool responses) is stored as data and is never interpreted.
+
+---
+
+## 9. Frontend (planned, Phases 3–4)
+
+React + Vite, Tailwind CSS, Recharts, React Router, TanStack Query. Lives in `frontend/`.
+
+| Page | Module | Shows |
+| :--- | :--- | :--- |
+| Login | — | Role-based sign-in |
+| Live Monitor | 4 | Live feed; pipeline view that lights up stage by stage; causal-check panel (Run A vs Run B) |
+| Episode Detail / Replay | 4 | All stage verdicts for one episode; step-by-step replay |
+| Attack Lab | 2 | Attack catalogue, custom attack editor, on/off side-by-side result, batch runs |
+| Demo Agent | 1 | Mock inbox; what the user asked, what the agent proposed, what actually ran |
+| Admin Console | 5 | Pending proposals, recomputed evidence, approve/reject, decision history, current policy |
+| Analytics | 5 | ASR / TPR / FPR / WCR per attack type and per setup, trends, CSV export |
+
+```
+frontend/src/
+  api/          REST client, WebSocket hook
+  components/   StageBadge, VerdictChip, EpisodeCard, PipelineView, ChartCard …
+  pages/        Monitor, Replay, AttackLab, Agent, Admin, Analytics, Login
+  hooks/        useEpisodeStream, useAuth
+```
+
+---
+
+## 10. Deployment (planned, Phase 6)
+
+```
+docker compose up
+  ├─ frontend   (Nginx serving the Vite build)      :80
+  ├─ backend    (FastAPI + Uvicorn)                 :8000
+  └─ postgres                                        :5432
+Ollama runs on the host (GPU access): gemma3:4b, qwen2.5:3b   :11434
+```
+
+---
+
+## 11. Models
+
+| Model | Role | Why |
+| :--- | :--- | :--- |
+| `gemma3:4b` | Causal check (3B) | It follows injected instructions when shown the content alone, which is exactly what makes the with/without difference measurable |
+| `qwen2.5:3b` | Sanitizer (3C), screener (L3), agent planner | More resistant to injections as a planner; good at rewriting |
+
+Both run locally through Ollama on a 4 GB GPU. There is no cloud API.
+
+---
+
+## 12. Evaluation and data
+
+| Folder | Contents |
+| :--- | :--- |
+| `red_team/data/` | InjecAgent (510 attacks), AgentDojo (253 attacks, 60 benign documents) |
+| `red_team/` | Attack library, execution agent, evaluator, campaign runner, dataset import scripts |
+| `evaluation/` | Benchmark runner (setups as `PipelineConfig` arms), metrics (ASR, TPR, FPR, WCR), confidence intervals, paired tests |
+| `results/` | Committed evaluation outputs with run manifests |
+| `logs/` | Local run logs and Episode Records (git-ignored) |

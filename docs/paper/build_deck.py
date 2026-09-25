@@ -8,7 +8,7 @@ from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.enum.shapes import MSO_SHAPE
 
-OUT = "/home/ahmad/adaptishield/paper/AdaptiShield-Overview.pptx"
+OUT = "/home/ahmad/adaptishield_FYP/docs/paper/AdaptiShield-Overview.pptx"
 
 PAPER   = RGBColor(0xF5, 0xF7, 0xF9)
 SURFACE = RGBColor(0xFF, 0xFF, 0xFF)

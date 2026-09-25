@@ -514,4 +514,4 @@ All results are regenerable by committed commands over the released artifact. Ea
 
 The figure below is the implementation-level architecture, reproduced for completeness. Unlike Fig. 1 it shows every module and every feedback path, including the red-team loop, the evaluation module and the off-machine training environment. **Every component shown is built and validated** — five specified-but-unimplemented boxes that earlier versions of this figure carried have been removed rather than drawn, so nothing in the diagram describes work that does not exist. Dashed arrows mark the adaptive feedback path; green marks offline measurement paths that make no model calls; italic marks components built and measured that ship disabled.
 
-![The complete AdaptiShield implementation architecture, including the red-team loop, evaluation module and off-machine training environment.](../AdaptiShield_Architecture_v3.drawio.png)
+![The complete AdaptiShield implementation architecture, including the red-team loop, evaluation module and off-machine training environment.](../../AdaptiShield_Architecture_v3.drawio.png)

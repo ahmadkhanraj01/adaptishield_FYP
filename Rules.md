@@ -1,204 +1,79 @@
 # AdaptiShield — Rules & Invariants
 
-**What this file is:** the hard constraints that must hold for anyone (human or
-AI) changing this codebase. Breaking one of these has silently broken a result
-before — most of them are scars, not preferences. For the reasoning behind them
-see [Design.md](Design.md); for structure see [Architecture.md](Architecture.md).
+**What this file is:** the rules everyone on the team (and any AI assistant) must follow when changing this codebase. For the reasoning behind them see [Design.md](Design.md); for structure see [Architecture.md](Architecture.md).
 
-*Last aligned: 2026-08-08 (adds the §8 vault-update invariant). Previously
-2026-08-03 (journal target adopted; adds §7 Evidence & reporting).*
-
-> **Publication target changed (2026-08-03, supervisor).** The paper goes to a
-> **journal**, not a conference. That does not change the architecture, but it
-> raises the evidentiary bar on every number that leaves this repo: reviewers
-> will ask *compared to what*, *over how many episodes*, and *with what
-> interval*. §7 below is the new hard constraint set that follows from it.
-
-> **Legend:** 🔴 hard invariant (breaking it invalidates results or breaks the
-> build) · 🟡 strong convention (break only with measurement + a doc update).
+**Legend:** 🔴 hard rule (breaking it breaks the build, the security model or the results) · 🟡 strong convention (break only with a good reason, written down)
 
 ---
 
 ## 1. Environment
 
-- 🔴 **`./venv` is the runtime of record.** Every command in this repo — the
-  pipeline, the tests, the figures, the paper build, the site build — runs under
-  it, and it satisfies `requirements.txt` in full (verified 13 Sep 2026). System
-  `python3` is **not** the runtime: it carries numpy 2.2.6, which this section
-  forbids. If something only works outside the venv, that is a bug in the venv,
-  not a licence to switch interpreter.
-- 🔴 **`numpy==1.26.4` is pinned.** numpy 2.x breaks on Python 3.10.12.
-  `requirements.txt` is the source of truth and **states the pin literally** — a
-  version named here but not written there pins nothing. `installed.txt` records
-  the historical drift and is **evidence, not a lockfile**: never
-  `pip freeze > installed.txt`.
-- 🔴 **Python 3.10.12**, Ubuntu 24.04, **4 GB VRAM is a hard ceiling** for local
-  GPU inference. Anything needing torch or a 7B+ model goes to **Kaggle P100**.
-- 🟡 The pipeline runs locally; Kaggle is for training/evaluation only (it
-  cannot host a live MCP server).
+- 🔴 **Python 3.10.12, inside `./venv`.** Every command (engine, backend, tests, evaluation) runs in the virtual environment. If something only works outside the venv, fix the venv.
+- 🔴 **`numpy==1.26.4` is pinned** in `requirements.txt`. numpy 2.x breaks on Python 3.10.12.
+- 🔴 **`requirements.txt` is the source of truth** for Python dependencies; `frontend/package.json` + lockfile for the frontend. Add a dependency there in the same commit that first uses it.
+- 🔴 **4 GB VRAM is the ceiling.** Models larger than ~4B parameters do not fit. Everything runs locally through Ollama.
+- 🔴 **No secrets in git.** `.env`, API keys and database passwords stay out of the repository (see `.gitignore`). Commit a `.env.example` with placeholder values instead.
 
-## 2. Models & probes
+## 2. Defense Engine
 
-- 🔴 **Do not drop `CausalAnalyzer.k_samples` below 2** without re-validating
-  3B end-to-end. IE resolution is `1/k_samples`; fewer samples = coarser metric.
-- 🔴 **Keep the per-component model split.** 3B = `gemma3:4b` (it complies under
-  the masked probe → real signal); 3C/L3/planner = `qwen2.5:3b`. A more
-  refusal-prone model on 3B *destroys* the causal signal.
-- 🔴 **The masked-probe prompt is calibrated (fix D / README 6i).** It must keep
-  refusing the softened escape hatches (polite phrasing, "standard step",
-  tool/feature notes, hypotheticals, "no need to actually do it"). Re-measure
-  the gen-2 campaign + benign FPR if you touch it.
-- 🟡 If `semantic_scoring` is ever revisited, run the judge at **temperature 0**
-  (it disagrees with itself across paraphrases, causing flaky FPR).
+- 🔴 **Every tool call goes through the engine.** No module (agent, Attack Lab, backend) may run a tool without the engine's verdict. There is no bypass path, even for testing; use `PipelineConfig.undefended()` to run without protection.
+- 🔴 **The backend wraps the engine; it does not reimplement it.** Decision logic stays in `layer*/` and `adaptishield_pipeline.py`. The API layer calls it and records what it did.
+- 🔴 **Keep the model split.** Causal check (3B) = `gemma3:4b`; sanitizer, screener and planner = `qwen2.5:3b`. A more refusal-prone model on 3B destroys the causal signal.
+- 🔴 **Do not lower `CausalAnalyzer.k_samples` below 2.** Fewer samples make the causal measurement too coarse.
+- 🔴 **Do not change the masked-probe prompt** without re-running the benchmark and the false-alarm check.
+- 🔴 **Takeover-rule invariants** (pinned by `tests/test_takeover_rules.py`):
+  - The standalone `masked ≥ 2` rule must always be able to fire, even when the IE guard suppresses the contrast.
+  - "Nothing observed" must never mean takeover: the drift and IE rules both require `masked ≥ 1`.
+  - Drift history is kept **per `session_id`**, never in one shared list.
+- 🔴 **Layer 4 gates independently.** Permission, egress and sandbox check every action regardless of the 3A/3B/3C verdict. The sandbox runs only when permission **and** egress both pass.
 
-## 3. 3B takeover-rule invariants (`tests/test_takeover_rules.py` pins these)
+## 3. Adaptive component & human gate
 
-- 🔴 **The standalone `masked ≥ 2` rule (6f) must always be able to fire**, even
-  when the IE consistency guard suppresses the contrast. Do **not** tighten the
-  guard (6h) without the standalone rule in place — on its own the guard turns
-  a strong-evidence attack into a false negative.
-- 🔴 **"Nothing observed" must never mean takeover.** The drift rule is gated on
-  `masked ≥ 1`; the IE rule on `masked ≥ 1` + consistent separation.
-- 🔴 **Drift history is per `session_id`.** Never revert to one flat list —
-  slopes across unrelated red-team cases are noise, not a trend.
-- 🟡 IE rule requires `min(masked) > max(masked_san)` (consistent across
-  samples). `require_consistent_ie=False` exists only for ablation.
+- 🔴 **3D never touches model weights.** It tunes only 3A blocked patterns and high-impact tools, and the 3B IE threshold.
+- 🔴 **`apply_update` requires `approved=True`, and only an Admin can supply it.** The approve endpoint checks the Admin role on the **server**; hiding a button in the UI is not access control.
+- 🔴 **The server recomputes the evidence.** Governance recomputes the current and proposed rewards from data. Never display or trust a proposal's self-reported numbers as the evidence.
+- 🔴 **Approval history is append-only.** Decisions are never edited or deleted. Each records who, when, the decision and the reason.
+- 🔴 **Train on labeled data only.** Never infer "was this an attack?" from the outcome.
+- 🔴 **No literal attacker addresses or URLs in proposed blocked patterns.** That is memorization, not learning. Exact destinations are Layer 4's allowlist's job.
+- 🔴 **The reward prefers continuing over blocking:** malicious→`safe_continuation` (+1.0) must out-reward malicious→`blocked` (+0.7).
 
-## 4. Component 3D invariants
+## 4. Backend (FastAPI)
 
-- 🔴 **3D never touches LLM weights.** It tunes only 3A `blocked_patterns` /
-  `high_impact_tools` and 3B `ie_threshold`.
-- 🔴 **`apply_update` requires `approved=True`.** 3D proposes; a human disposes.
-- 🔴 **Train on labeled data only** (red-team `ExecutionResult`s or labeled
-  telemetry replay). Never infer the attack label from the outcome — it is
-  circular.
-- 🔴 **No literal exfil targets in proposals (fix A).** `propose_update` must not
-  emit raw addresses/URLs into `blocked_patterns` — that is memorization and
-  inflates before/after numbers. Layer 4's allowlist covers exact destinations.
-- 🔴 **`threshold_step` = `CausalAnalyzer.ie_resolution` (fix C).** A step finer
-  than the IE grid is a provable no-op.
-- 🔴 **The reward is WCR-aware (fix B).** malicious→`safe_continuation` (+1.0)
-  must out-reward malicious→`blocked` (+0.7). Do not collapse them.
+- 🔴 **Validate every request with Pydantic models.** No raw `dict` input on public endpoints.
+- 🔴 **Authenticate every endpoint except `/api/auth/login` and `/api/health`**, and authorize by role on the server.
+- 🔴 **Never block the event loop.** Engine calls take seconds; run them in a worker thread or task queue, not directly in an `async` handler.
+- 🔴 **Every stage verdict is both persisted and streamed.** The database row and the WebSocket event come from the same source, so Replay shows exactly what the Monitor showed live.
+- 🟡 Use `logging`, not `print()`, in anything the backend imports.
+- 🟡 Database schema changes go through Alembic migrations, never manual edits.
 
-## 5. Security & handling
+## 5. Handling untrusted content
 
-- 🔴 **Layer 4 is defense-in-depth.** Permission, egress, and sandbox each gate
-  *independently* of the 3A/3B/3C verdict. The sandbox executes only when
-  permission **and** egress both pass.
-- 🔴 **Mediator text is untrusted everywhere — including in telemetry.** Episode
-  Records now store mediator snippets; treat them as untrusted input anywhere
-  they are displayed or replayed.
-- 🔴 **Always hold out at least one attacker address/target from training.**
-  README Section 6d exists because nothing was held out and memorization looked
-  like generalization.
+- 🔴 **Injected content is untrusted everywhere**: in the engine, in the database, in logs, in the API and in the dashboard. It is attacker-written text.
+- 🔴 **The frontend renders untrusted content as plain text only.** Never use `dangerouslySetInnerHTML`, and never render it as Markdown or HTML. An injection that runs script in the admin's browser would defeat the whole system.
+- 🔴 **Never pass untrusted content to a shell, `eval`, or a SQL string.** Use SQLAlchemy parameters; the sandbox is the only place commands run.
+- 🔴 **Demo agent tools are simulated.** They log what would have happened; they never send real mail or touch real files.
 
-## 6. Testing & measurement
+## 6. Evaluation & reporting
 
-- 🟡 **Deterministic decision logic → `tests/`** (patch the four probe regimes
-  out, no Ollama, sub-second). **LLM-dependent checks → `evaluation/`** (minutes,
-  vary run-to-run; record numbers in docs, don't assert on them).
-- 🟡 **Judge detection by the layer under test** (`caught_by_causal`), not by
-  end-to-end ASR — the egress backstop keeps ASR at 0% regardless. Report both:
-  layer-attributed detection *and* end-to-end ASR, and say which is which.
-- 🔴 **Report FPR (and any flaky metric) as a distribution over repeated runs**,
-  not a single-campaign figure. Greedy decoding is *not* literally deterministic
-  (2/564 regime severities disagreed), so a single run is a sample, not a value.
+- 🔴 **Report every metric per attack type**, not only as one overall number.
+- 🔴 **Every rate comes with `n`, the dataset name and a 95% Wilson interval.** A bare percentage is a rough indication and must be labeled as one.
+- 🔴 **All setups share one code path.** No defense, Spotlighting and full AdaptiShield are `PipelineConfig` values run through the same pipeline, on the same cases, with the same models.
+- 🔴 **Never mix datasets of different origin.** Our own development attacks, InjecAgent and AgentDojo are reported separately.
+- 🔴 **The AgentDojo attack set is a holdout.** Do not tune rules or thresholds after looking at its results. If that happens, say so, because it is no longer a holdout.
+- 🔴 **Every reported number is reproducible** from one committed command, with its output committed under `results/` alongside a manifest (models, dataset version, commit, date).
+- 🔴 **Report weak results too.** Attack types the system misses are shown in Analytics and in the final report, not hidden.
+- 🟡 Model output varies slightly even at temperature 0; report false-alarm rates over repeated runs, not a single run.
 
----
+## 7. Testing
 
-## 7. Evidence & reporting (journal-grade claims)
+- 🔴 **`python -m pytest tests/ -q` passes before every merge** into `main`. CI runs it on every push.
+- 🔴 **Unit tests do not call Ollama.** Stub the model out so tests are deterministic and fast. Model-dependent checks belong in `evaluation/`.
+- 🟡 New backend endpoints get API tests (`TestClient`); new frontend components get Vitest tests; main user flows get a Playwright end-to-end test.
+- 🟡 After changing engine code, delete `logs/*_checkpoint/` before re-running evaluations; cached results describe the old code.
 
-*These exist because a journal reviewer sees only the numbers, not the repo.
-Anything violating one of these is a desk-reject risk or a correction later.*
+## 8. Team workflow
 
-- 🔴 **No headline number without `n`, the named corpus, and a 95% interval.**
-  Proportions use **Wilson** intervals (small `n`, near-boundary rates — normal
-  approximation is wrong here). A bare point estimate is a *diagnostic*, and
-  must be labelled as one in text and in tables.
-- 🔴 **Never pool cohorts of different provenance.** The 8 hand-written benign
-  controls and the 60 externally-authored AgentDojo benigns are separate
-  cohorts, always. Pooling them is what made `4/8` look like an FPR. State
-  provenance and version for every external corpus (AgentDojo v0.1.35, MIT).
-- 🔴 **Every arm shares one code path.** Ablation arms are `PipelineConfig`
-  values inside the pipeline, never a forked script. An "ablation" that runs
-  different code is a different system, and the comparison means nothing.
-- 🔴 **At least two comparison arms besides the full system**: (1) **undefended**
-  and (2) a **published prompt-level defense** (spotlighting / data-marking),
-  run on the *same* corpus, *same* seeds, *same* model tags. "Static rule
-  baseline" is our own ablation, not an external baseline — it does not
-  discharge this requirement.
-- 🔴 **Held-out splits are enforced by construction, not by slicing.** As in
-  `generate_training_attacks()` / `generate_holdout_attacks()`, with an
-  assertion proving no held-out target leaks into training (see §5).
-- 🔴 **Every number in the paper is regenerable by one committed command** whose
-  artifact is committed under `results/` with a run manifest (seeds, model tags,
-  corpus version, commit SHA, date). If a table cannot be regenerated, it cannot
-  be claimed.
-- 🔴 **A statistic is a result, not arithmetic.** No p-value, interval or rate
-  enters any document before the code computing it is committed and its inputs are
-  in the tracked artifact. Violated once already: Phase 10's `McNemar p = 1.00,
-  8 helped / 7 hurt` reached **five documents** with no committed implementation and
-  no discordant counts in `results/phase10/benchmark.json` — the paired data existed
-  only in a **gitignored** checkpoint. The figure happened to be right, which is
-  luck rather than process. Fixed by `evaluation/paired.py` + `paired.per_case` in
-  the artifact.
-- 🔴 **A replayed run must say so in its manifest.** Recomputing an old result with
-  new reporting code produces a report indistinguishable from a fresh run, stamped
-  with the *current* commit — a provenance lie in the artifact. `replay.fully_replayed`
-  records it, and the original run's manifest is kept alongside the analysis one.
-- 🔴 **Paired arms get a paired test.** Two Wilson intervals overlapping is not a
-  test when both arms ran the same cases; the **discordant** pairs are the evidence.
-  Report `helped` / `hurt` / `discordant`, use the exact binomial below ~25
-  discordant pairs, and never read a high p as equivalence — it is low power.
-- 🔴 **Negative results are reported, not quietly dropped.** The §6d
-  memorization, the §6n corpus artifact (36 FP/68 benign), the policy proposing
-  a reward-*decreasing* change, and the near-uniform learned distribution are
-  **contributions** about generalization gaps in adaptive defense learning. They
-  are the reason the Layer 5 human gate exists. Removing them to make the system
-  look cleaner also removes the paper's most defensible claim.
-- 🟡 **Do not describe the GRPO policy as "trained"** while the corpus leaves it
-  nothing to learn — the argmax comes from the minimal-intervention tie-breaker.
-  Say what it is: a policy over a knob whose reward is flat on this data.
-- 🟡 **Language discipline in the manuscript:** "detected by 3B" ≠ "blocked";
-  "no gap the knob can close" ≠ "no gap"; "unidentifiable on this batch" ≠
-  "irrelevant". Each of these has already been confused once in these docs.
-- 🟡 **Known bounded false positives stay documented, with the trade priced**
-  (`workspace-041`, `workspace-055`). A reviewer finding an unlisted FP is worse
-  than a listed one with a rationale.
-
-## 8. Workflow
-
-- 🔴 **Every session's work lands in the Obsidian vault before the session ends.**
-  This applies to *anything* an AI assistant (Claude Code or otherwise) does in
-  this repo — code changes, a campaign run, a number that moved, a decision
-  taken, a result withdrawn. The repo stays the source of truth for code and
-  numbers; **`Research/` is the source of truth for how the pieces relate**, and
-  it is only useful if it is never behind. The ritual, per
-  `Research/00 Meta/Vault Map.md`:
-
-  | Did | Write |
-  | :--- | :--- |
-  | New result (positive **or** negative) | a note in `03 Findings`, linked from `Findings Index` |
-  | Any session of work | a dated note in `04 Research Log`, linked from `Research Log Index` |
-  | A number moved | `06 Metrics/Current Numbers.md` — with `n`, corpus and interval (§7) |
-  | Phase state changed | `05 Phases` **and** `Phase.md` |
-  | New/closed open item | `08 Open/Backlog.md`, and the next-task note if the top priority moved |
-  | New trap, rule or run procedure | `07 Practice` (`Traps`, `Rules and Invariants`, `How to Run`) |
-  | An architectural change | `02 Architecture` |
-
-  Vault conventions are binding: **one idea per note**, frontmatter `tags` +
-  `type`, `[[wikilinks]]` rather than prose references, status markers
-  (✅ 🟡 🔴 ⛔), and **every finding note ends with `## What this does not
-  establish`**. A withdrawn result is **marked, never deleted** — the corrections
-  are the most transferable part of this work.
-- 🔴 **`Rules.md` and `Research/07 Practice/Rules and Invariants.md` are two
-  views of one thing.** Change one, change the other in the same edit.
-- 🟡 **Keep the docs in sync.** On any change, update the root `README.md`, the
-  relevant per-folder `README.md`, and — where affected — `Architecture.md`,
-  `Design.md`, `Rules.md`, `Phase.md`.
-- 🟡 **The root `README.md` lags reality.** Per-folder READMEs are the more
-  reliable source of truth; when they disagree, trust the folder and fix the root.
-- 🟡 **Any change that moves a reported metric also updates `results/`** and the
-  affected table in the manuscript draft — a metric that changed in code but not
-  in the paper is how a submission acquires a wrong number.
-- 🟡 **Commits/pushes only when the user asks.** Branch off `main` first.
+- 🔴 **Never commit directly to `main`.** Create a branch (`feature/attack-lab`, `fix/ws-reconnect`), open a pull request, and have at least one teammate review it.
+- 🟡 Commit messages say what changed and why, in the present tense ("Add replay endpoint").
+- 🟡 **Keep the docs in sync.** A change to structure updates [Architecture.md](Architecture.md); a finished task is ticked in [Phase.md](Phase.md); a new rule goes here; each folder's `README.md` describes that folder.
+- 🟡 Supervisor meetings and decisions are recorded in `FYP/`.

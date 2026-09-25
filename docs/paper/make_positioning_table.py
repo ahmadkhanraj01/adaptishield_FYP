@@ -22,13 +22,13 @@ import json
 import os
 import sys
 
-REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, REPO)
 
 from evaluation.fpr_report import wilson as _wilson  # noqa: E402
 
-SECTION = os.path.join(REPO, "paper", "10-positioning.md")
-EXTERNAL = os.path.join(REPO, "paper", "external_numbers.json")
+SECTION = os.path.join(REPO, "docs", "paper", "10-positioning.md")
+EXTERNAL = os.path.join(REPO, "docs", "paper", "external_numbers.json")
 
 BEGIN = "<!-- BEGIN GENERATED — python3 paper/make_positioning_table.py -->"
 END = "<!-- END GENERATED -->"

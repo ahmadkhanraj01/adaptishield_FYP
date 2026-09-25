@@ -34,9 +34,9 @@ from docx.oxml.ns import qn
 from docx.shared import Inches, Pt, RGBColor
 from PIL import Image
 
-REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SRC = os.path.join(REPO, "paper", "manuscript.md")
-OUT = os.path.join(REPO, "paper", "AdaptiShield-Manuscript.docx")
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+SRC = os.path.join(REPO, "docs", "paper", "manuscript.md")
+OUT = os.path.join(REPO, "docs", "paper", "AdaptiShield-Manuscript.docx")
 
 BODY_FONT = "Times New Roman"
 MONO_FONT = "Consolas"
@@ -396,7 +396,7 @@ def build():
 
         elif kind == "image":
             caption, path = payload
-            full = os.path.normpath(os.path.join(REPO, "paper", path))
+            full = os.path.normpath(os.path.join(REPO, "docs", "paper", path))
             if not os.path.exists(full):
                 missing.append(path)
                 continue

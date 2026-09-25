@@ -25,9 +25,9 @@ from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.util import Inches, Pt
 
-REPO = pathlib.Path(__file__).resolve().parent.parent
-FIG = REPO / "paper" / "figures"
-OUT = str(REPO / "paper" / "AdaptiShield-Full-Review.pptx")
+REPO = pathlib.Path(__file__).resolve().parent.parent.parent
+FIG = REPO / "docs" / "paper" / "figures"
+OUT = str(REPO / "docs" / "paper" / "AdaptiShield-Full-Review.pptx")
 
 PAPER   = RGBColor(0xF5, 0xF7, 0xF9)
 SURFACE = RGBColor(0xFF, 0xFF, 0xFF)
