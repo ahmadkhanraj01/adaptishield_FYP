@@ -1,0 +1,74 @@
+{
+  "generated": "2026-09-12T12:23:55+0500",
+  "commit": "a999906db0e9cd56c07a6815380bcdfd3611793a",
+  "commit_subject": "The benign corpus cannot be expanded: it was already the whole thing",
+  "dirty": true,
+  "produced_by": "python3 -m evaluation.campaign_report",
+  "replay": {
+    "fully_replayed": true,
+    "what_ran_now": "reporting only \u2014 no model call, no pipeline execution, no re-scoring. The per-case outcomes are read from the campaign's own checkpoint files.",
+    "run_of_record": "campaign of 26 July 2026 (checkpoint mtimes below)",
+    "original_manifest": null,
+    "original_manifest_note": "None exists. red_team/run_campaign.py predates evaluation.benchmark.build_manifest, and the newest record in logs/red_team_runs/ is 2026-07-22, four days before these checkpoints. Rules \u00a77 asks a replay to keep the original manifest alongside the analysis one; this records its absence instead of reconstructing it.",
+    "originating_commit_inferred": "01335ac",
+    "originating_commit_evidence": "INFERRED, NOT RECORDED. 01335ac (26 Jul 2026) is the \u00a76p commit whose own message states detection reaching 96.7% with FPR steady at 3.3%, and the checkpoints were written that evening. Consistent, not proven \u2014 treat as a pointer for a reader, not as provenance.",
+    "inputs_gitignored": true,
+    "inputs_note": "logs/ is gitignored, so a fresh clone cannot rebuild these checkpoints without re-running the campaign (~1.5 h, local GPU). This is the same departure from Rules \u00a77 that refusal_audit/ records. It is mitigated, not cured, by committing per_case into the artifact: every rate in summary is recomputable from this file alone."
+  },
+  "inputs": [
+    {
+      "pass": "gen1",
+      "path": "logs/campaign_checkpoint/gen1.jsonl",
+      "cases": 134,
+      "sha256": "5c4151b4bc5bde0cf829721bd3d0f7d0648cef701c5d96b9f4270bf63dcf3a74",
+      "mtime": "2026-07-26T20:04:49+0500"
+    },
+    {
+      "pass": "gen2",
+      "path": "logs/campaign_checkpoint/gen2.jsonl",
+      "cases": 6,
+      "sha256": "7a44678e0ce2047ee8c55d4990c4202ad6cb9cde913eb140f16edf7e8825ee74",
+      "mtime": "2026-07-26T20:07:31+0500"
+    },
+    {
+      "pass": "holdout",
+      "path": "logs/campaign_checkpoint/holdout.jsonl",
+      "cases": 48,
+      "sha256": "9ce47fd5802e94d7be087a563ed97e0dad3168bbf5cb5a401dddcb65759eb6ef",
+      "mtime": "2026-07-26T20:30:48+0500"
+    }
+  ],
+  "models_at_run": {
+    "ie_threshold": 0.5,
+    "ie_threshold_evidence": "appears in 116 recorded verdict strings",
+    "ie_threshold_disagreement": null,
+    "model_tags": null,
+    "temperature": null,
+    "k_samples": null,
+    "note": "Only values recoverable from the recorded verdicts are filled in. The run predates run-manifest support in the campaign runner, so model tags, temperature and k_samples were not recorded and are NOT reconstructed from current config. Rules \u00a72 pins the shipped split (3B gemma3:4b, 3C/L3/planner qwen2.5:3b) and no commit between 7d0ec10 and 01335ac changes it, but that is an argument, not a record."
+  },
+  "models_shipped_now": {
+    "causal_3b": "gemma3:4b",
+    "sanitizer_3c_screener_planner": "qwen2.5:3b / gemma3:4b (planner)",
+    "note": "Current values, for comparison only. NOT asserted to be the values this run used \u2014 see models_at_run."
+  },
+  "corpus": {
+    "name": "campaign (authored by us)",
+    "episodes": 188,
+    "malicious": 120,
+    "benign_cohorts": {
+      "benign": 8,
+      "benign_agentdojo": 60
+    },
+    "external_benign_source": "AgentDojo v0.1.35 (github.com/ethz-spylab/agentdojo), MIT licence \u2014 the 60-document cohort is the complete benign content of its workspace and slack suites",
+    "holdout": "The holdout pass replays the same families against addresses held out of everything 3D could train on (Rules \u00a75).",
+    "pooling": "\ud83d\udd34 THE TWO BENIGN COHORTS MUST NOT BE POOLED. 8 hand-written controls (4 written to break the detector) and 60 externally authored documents are different provenance. Pooling them is what made 4/8 look like an FPR."
+  },
+  "seeding": "greedy decoding at temperature 0; no RNG seed is exposed by Ollama. Not literally deterministic (\u00a76n: 2/564 regime severities disagreed). This campaign was run ONCE \u2014 the benign side's run-to-run behaviour is measured in results/noise_floor/agentdojo_benign.json, not here.",
+  "ollama": {
+    "sampled": false,
+    "note": "Not sampled. The GPU/CPU state that matters is the one during inference, and inference happened in July; probing Ollama now would record this machine's state today and imply it was the run's."
+  },
+  "python": "3.10.12",
+  "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.35"
+}

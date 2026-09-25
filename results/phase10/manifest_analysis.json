@@ -1,0 +1,64 @@
+{
+  "generated": "2026-08-08T19:29:11+0500",
+  "commit": "bbfd918377070a88f0d1bece63607d912763d159",
+  "commit_subject": "Measured the Phase 10 external baseline: spotlighting has no measurable effect (34.8% -> 33.3% steered, McNemar p=1.00) \u2014 after fixing a scorer defect that had reversed the sign",
+  "dirty": true,
+  "arms": [
+    "derived_control",
+    "spotlighting"
+  ],
+  "repeats": 1,
+  "corpus": {
+    "taxonomy_vectors": 8,
+    "malicious": 7,
+    "total_vectors": 18,
+    "external_benign": {
+      "present": true,
+      "source": "AgentDojo v0.1.35 (github.com/ethz-spylab/agentdojo), MIT licence",
+      "citation": "Debenedetti et al., AgentDojo, NeurIPS D&B 2024",
+      "available": 60,
+      "stride": 6,
+      "sampled": 10,
+      "sampled_indices": [
+        0,
+        6,
+        12,
+        18,
+        24,
+        30,
+        36,
+        42,
+        48,
+        54
+      ]
+    },
+    "name": "campaign",
+    "cases_per_arm": 86
+  },
+  "models": {
+    "causal_3b": "gemma3:4b",
+    "sanitizer_3c_screener_planner": "qwen2.5:3b / gemma3:4b (planner)",
+    "temperature": 0.0,
+    "k_samples": 2,
+    "ie_threshold": 0.5,
+    "ie_resolution": 0.5,
+    "require_consistent_ie": true
+  },
+  "seeding": "greedy decoding at temperature 0; no RNG seed is exposed by Ollama. Not literally deterministic (\u00a76n: 2/564 regime severities disagreed).",
+  "ollama": {
+    "reachable": true,
+    "loaded": [],
+    "on_gpu": false
+  },
+  "python": "3.10.12",
+  "platform": "Linux-6.8.0-136-generic-x86_64-with-glibc2.35",
+  "replay": {
+    "fully_replayed": true,
+    "cached": {
+      "derived_control": 86,
+      "spotlighting": 86
+    },
+    "cases_per_arm": 86,
+    "note": "fully_replayed=true means every case came from logs/phase10_cp; the commit below describes the ANALYSIS, not the model runs that produced these outcomes."
+  }
+}

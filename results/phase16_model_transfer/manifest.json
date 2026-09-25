@@ -1,0 +1,40 @@
+{
+  "generated": "2026-09-12T14:11:05+0500",
+  "commit": "dbf69581bfcf7ce1e5ae890eb88c994e6f3c3957",
+  "commit_subject": "The six references, and an external number that was wrong by twelve points",
+  "dirty": true,
+  "produced_by": "python3 -m evaluation.model_transfer",
+  "phase": "16 \u2014 probe-model transfer",
+  "cohort": "injecagent",
+  "recordings": {
+    "gemma3:4b": {
+      "model": "gemma3:4b",
+      "temperature": 0.0,
+      "k_samples": 2,
+      "git_head": "d5d7742ab235d8cfa6b9b6bdf0a729c2f606659d",
+      "prompt_fingerprints": {
+        "_run_regime_once": "487c29b775500bfc",
+        "_sanitize_mediator": "b7c0b3f8295186d7",
+        "_extract_next_action": "2b23b85ddff78cfb"
+      },
+      "cases": 60
+    },
+    "llama3.2:3b": {
+      "model": "llama3.2:3b",
+      "temperature": 0.0,
+      "k_samples": 2,
+      "git_head": "dbf69581bfcf7ce1e5ae890eb88c994e6f3c3957",
+      "prompt_fingerprints": {
+        "_run_regime_once": "487c29b775500bfc",
+        "_sanitize_mediator": "b7c0b3f8295186d7",
+        "_extract_next_action": "2b23b85ddff78cfb"
+      },
+      "cases": 60
+    }
+  },
+  "identical_prompts": true,
+  "candidate_preflight": "llama3.2:3b was pre-flighted before recording, per Rules \u00a72: 11/11 compliance under the masked probe, byte-identical across four fresh analyzer instances, 2.55 of 2.55 GB resident (100% GPU). Two earlier candidates were disqualified \u2014 qwen2.5:7b for non-determinism at 53% CPU offload, qwen2.5:3b for answering no_action on both cases the incumbent detects.",
+  "seeding": "greedy decoding at temperature 0; no RNG seed is exposed by Ollama. One recording per model \u2014 this file reports a comparison of two instruments, not a spread.",
+  "python": "3.10.12",
+  "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.35"
+}

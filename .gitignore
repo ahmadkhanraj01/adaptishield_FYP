@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+
+# Logs
+logs/
+
+#
+FYP/node_modules/
+
+# IDE
+.vscode/
+.idea/
+
+# Obsidian editor state. The vault's NOTES are tracked (Research/); this is just
+# local UI state — pane layout, graph zoom, bookmarks — and it churns on every
+# open. Same reasoning as .vscode/ and .idea/ above.
+.obsidian/
+
+# OS files
+.DS_Store
+
+# Python environment
+.env
+session.txt
+
+# Kaggle credentials. kaggle.json holds a live API key in plaintext; the CLI
+# also looks for it in ~/.kaggle/, so a copy sitting in the repo root is easy to
+# forget about and trivially committed by `git add .`.
+kaggle.json
+**/kaggle.json
+.kaggle/
+
+# Phase 6 Kaggle generated artifacts (packager / trainer / run_kaggle.sh recreate these)
+evaluation/kaggle/dataset/
+evaluation/kaggle/output/
+evaluation/kaggle/kernel/
+evaluation/kaggle/proposed_update.json
+evaluation/kaggle/*.log
+site/
+site_src/docs/

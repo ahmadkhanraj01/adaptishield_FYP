@@ -1,0 +1,79 @@
+{
+  "generated": "2026-08-08T21:13:56+0500",
+  "commit": "b5f36f11ea19d7feef667707bcf6c420aa60cc97",
+  "commit_subject": "Measured the refusal exposure instead of fixing it (0/209, control passing) and found Phase 10's published p-value had no committed source",
+  "dirty": true,
+  "arms": [
+    "undefended",
+    "screener_only",
+    "plus_policy",
+    "plus_causal",
+    "plus_sanitizer",
+    "plus_permission",
+    "full"
+  ],
+  "repeats": 3,
+  "corpus": {
+    "taxonomy_vectors": 8,
+    "malicious": 7,
+    "total_vectors": 18,
+    "external_benign": {
+      "present": true,
+      "source": "AgentDojo v0.1.35 (github.com/ethz-spylab/agentdojo), MIT licence",
+      "citation": "Debenedetti et al., AgentDojo, NeurIPS D&B 2024",
+      "available": 60,
+      "stride": 6,
+      "sampled": 10,
+      "sampled_indices": [
+        0,
+        6,
+        12,
+        18,
+        24,
+        30,
+        36,
+        42,
+        48,
+        54
+      ]
+    },
+    "name": "vectors",
+    "cases_per_arm": 54
+  },
+  "models": {
+    "causal_3b": "gemma3:4b",
+    "sanitizer_3c_screener_planner": "qwen2.5:3b / gemma3:4b (planner)",
+    "temperature": 0.0,
+    "k_samples": 2,
+    "ie_threshold": 0.5,
+    "ie_resolution": 0.5,
+    "require_consistent_ie": true
+  },
+  "seeding": "greedy decoding at temperature 0; no RNG seed is exposed by Ollama. Not literally deterministic (\u00a76n: 2/564 regime severities disagreed).",
+  "ollama": {
+    "reachable": true,
+    "loaded": [
+      {
+        "model": "gemma3:4b",
+        "size_vram": 1709472480
+      }
+    ],
+    "on_gpu": true
+  },
+  "python": "3.10.12",
+  "platform": "Linux-6.8.0-136-generic-x86_64-with-glibc2.35",
+  "replay": {
+    "fully_replayed": true,
+    "cached": {
+      "undefended": 54,
+      "screener_only": 54,
+      "plus_policy": 54,
+      "plus_causal": 54,
+      "plus_sanitizer": 54,
+      "plus_permission": 54,
+      "full": 54
+    },
+    "cases_per_arm": 54,
+    "note": "fully_replayed=true means every case came from logs/phase11_cp; the commit below describes the ANALYSIS, not the model runs that produced these outcomes."
+  }
+}

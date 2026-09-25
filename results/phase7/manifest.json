@@ -1,0 +1,48 @@
+{
+  "generated": "2026-08-08T10:45:34+0500",
+  "commit": "01335ac275aee64ef2d426f099b833eb99a70915",
+  "commit_subject": "Fixed the probe hallucination at the scorer rather than the prompt (three prompt attempts cost 8 detections and were reverted), taking detection to 96.7% with FPR steady at 3.3% \u2014 then built and ran the Phase  7 eight-vector benchmark, whose first result I had to withdraw after finding the egress allowlist intercepts 6 of 8 vectors, making every arm equal by construction.",
+  "dirty": true,
+  "arms": [
+    "undefended",
+    "static_only",
+    "full",
+    "no_egress"
+  ],
+  "repeats": 3,
+  "corpus": {
+    "taxonomy_vectors": 8,
+    "malicious": 7,
+    "total_vectors": 18,
+    "external_benign": {
+      "present": true,
+      "source": "AgentDojo v0.1.35 (github.com/ethz-spylab/agentdojo), MIT licence",
+      "citation": "Debenedetti et al., AgentDojo, NeurIPS D&B 2024",
+      "available": 60,
+      "stride": 6,
+      "sampled": 10
+    }
+  },
+  "models": {
+    "causal_3b": "gemma3:4b",
+    "sanitizer_3c_screener_planner": "qwen2.5:3b / gemma3:4b (planner)",
+    "temperature": 0.0,
+    "k_samples": 2,
+    "ie_threshold": 0.5,
+    "ie_resolution": 0.5,
+    "require_consistent_ie": true
+  },
+  "seeding": "greedy decoding at temperature 0; no RNG seed is exposed by Ollama. Not literally deterministic (\u00a76n: 2/564 regime severities disagreed).",
+  "ollama": {
+    "reachable": true,
+    "loaded": [
+      {
+        "model": "gemma3:4b",
+        "size_vram": 1709472480
+      }
+    ],
+    "on_gpu": true
+  },
+  "python": "3.10.12",
+  "platform": "Linux-6.8.0-136-generic-x86_64-with-glibc2.35"
+}

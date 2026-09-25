@@ -1,0 +1,13 @@
+{
+  "id": "__USERNAME__/adaptishield-grpo-3d",
+  "title": "AdaptiShield GRPO 3D",
+  "code_file": "grpo_train.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": false,
+  "dataset_sources": ["__USERNAME__/adaptishield-episodes"],
+  "competition_sources": [],
+  "kernel_sources": []
+}

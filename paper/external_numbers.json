@@ -1,0 +1,183 @@
+{
+  "_what": "Published numbers we position against. Nothing here is measured by us.",
+  "_rule": "Every row carries the verbatim sentence or table cell it came from, its URL, and a `verified` field. `verbatim` means the quote was read out of the paper's own text or table; `unverified` means it reached us second-hand and MUST NOT enter the manuscript until someone reads the primary source. A row without a quote is not a row.",
+  "_checked": "2026-09-13",
+  "sources": [
+    {
+      "key": "injecagent",
+      "citation": "Zhan, Liang, Ying and Kang, InjecAgent: Benchmarking Indirect Prompt Injections in Tool-Integrated Large Language Model Agents, Findings of ACL 2024",
+      "url": "https://aclanthology.org/2024.findings-acl.624/",
+      "corpus": "InjecAgent, 1,054 test cases, 17 user tools, 62 attacker instructions",
+      "rows": [
+        {
+          "system": "ReAct-prompted GPT-4 (undefended)",
+          "metric": "ASR-valid, all attack types",
+          "value_pct": 24.0,
+          "setting": "base",
+          "verified": "verbatim",
+          "quote": "the prompted GPT-4 demonstrates a high ASR of 24% in the base setting and a higher ASR of 47% in the enhanced setting"
+        },
+        {
+          "system": "ReAct-prompted GPT-4 (undefended)",
+          "metric": "ASR-valid, all attack types",
+          "value_pct": 47.0,
+          "setting": "enhanced (hacking prompt prepended)",
+          "verified": "verbatim",
+          "quote": "the prompted GPT-4 demonstrates a high ASR of 24% in the base setting and a higher ASR of 47% in the enhanced setting"
+        },
+        {
+          "system": "ReAct-prompted Llama2-70B (undefended)",
+          "metric": "ASR-valid, all attack types",
+          "value_pct": 80.0,
+          "display": ">80%",
+          "setting": "both settings, lower bound",
+          "verified": "verbatim",
+          "quote": "the prompted Llama2-70B exhibits ASRs exceeding 80% in both settings, indicating a high susceptibility to attacks"
+        },
+        {
+          "system": "Fine-tuned GPT-4 / GPT-3.5 (undefended)",
+          "metric": "ASR-valid, all attack types",
+          "value_pct": 3.8,
+          "setting": "base; GPT-3.5 is 6.6%",
+          "verified": "verbatim",
+          "quote": "the fine-tuned GPT-4 and GPT-3.5 demonstrate greater resilience to these attacks, with significantly lower ASRs of 3.8% and 6.6% respectively"
+        }
+      ]
+    },
+    {
+      "key": "agentdojo",
+      "citation": "Debenedetti, Zhang, Balunovic, Beurer-Kellner, Fischer and Tramer, AgentDojo: A Dynamic Environment to Evaluate Prompt Injection Attacks and Defenses for LLM Agents, NeurIPS Datasets and Benchmarks 2024",
+      "url": "https://arxiv.org/abs/2406.13352",
+      "corpus": "AgentDojo, 97 user tasks, 629 security test cases",
+      "rows": [
+        {
+          "system": "Tool filter defense",
+          "metric": "targeted attack success rate",
+          "value_pct": 7.5,
+          "setting": "GPT-4o — stated in the body text, not read off Table 5",
+          "verified": "verbatim",
+          "quote": "Our simple tool filtering defense is particularly effective, lowering the attack success rate to 7.5%.",
+          "discrepancy_note": "The same paper's Table 5 gives the tool filter a targeted ASR of 6.84% (+/-2.0) for GPT-4o -- 0.66 points below the 7.5% its body text states for what appears to be the same defense, model and metric. That is larger than rounding. This row is NOT changed: the quote is verbatim and the value matches the quote, so the row is correct as a record of what the paper says in prose. Which figure the authors intend as canonical is not determinable from the text, and 6.84% has not been read by a human as a standalone claim -- the 13 Sep read confirmed the 'No defense' and 'Delimiting' rows. The manuscript now cites the prose figure and names the table figure beside it rather than silently choosing one. To resolve: a human reading both, then either re-scoping this row or adding a Table 5 row of its own."
+        },
+        {
+          "system": "No defense, important-instructions attack",
+          "metric": "targeted attack success rate",
+          "value_pct": 57.69,
+          "setting": "GPT-4o, 95% CI ±3.9",
+          "verified": "verbatim",
+          "quote": "Table 5, row 'No defense': benign utility 69.0% (±3.6), utility w. attack 50.01% (±3.9), targeted ASR 57.69% (±3.9).",
+          "source_table": "Table 5 — 'Targeted and untargeted attack success rates for different defenses with GPT-4o. Detailed results for Figure 9. 95% confidence intervals between parentheses.'",
+          "verified_on": "2026-09-13, human read of Table 5 in the primary source",
+          "correction_note": "Superseded 45.8%, which was wrong by twelve points and taken from the wrong table: 45.8% is Table 2's attacker-knowledge ablation baseline ('generic references'), not the undefended headline. The wrong value sat in this file from August until 2026-09-12."
+        },
+        {
+          "system": "Delimiting defense (prompt-level)",
+          "metric": "targeted attack success rate",
+          "value_pct": 41.65,
+          "setting": "GPT-4o, 95% CI ±3.9",
+          "verified": "verbatim",
+          "quote": "Table 5, row 'Delimiting': benign utility 72.66% (±3.5), utility w. attack 55.64% (±3.9), targeted ASR 41.65% (±3.9).",
+          "source_table": "Table 5 — 'Targeted and untargeted attack success rates for different defenses with GPT-4o. Detailed results for Figure 9. 95% confidence intervals between parentheses.'",
+          "verified_on": "2026-09-13, human read of Table 5 in the primary source"
+        }
+      ]
+    },
+    {
+      "key": "spotlighting",
+      "citation": "Hines, Lopez, Hall, Zarfati, Zunger and Kiciman, Defending Against Indirect Prompt Injection Attacks With Spotlighting, arXiv:2403.14720, 2024",
+      "url": "https://arxiv.org/abs/2403.14720",
+      "corpus": "authors' own evaluation, GPT-family models",
+      "rows": [
+        {
+          "system": "Spotlighting (datamarking)",
+          "metric": "attack success rate, before to after",
+          "value_pct": 2.0,
+          "setting": "from >50% to <2%, GPT-family",
+          "verified": "verbatim",
+          "quote": "Using GPT-family models, we find that spotlighting reduces the attack success rate from greater than 50% to below 2% in our experiments with minimal impact on task efficacy."
+        }
+      ]
+    },
+    {
+      "key": "pishield",
+      "citation": "Zou, Liu, Wang, Chen, Gong and Jia, PIShield: Detecting Prompt Injection Attacks via Intrinsic LLM Features, arXiv:2510.14005",
+      "url": "https://arxiv.org/abs/2510.14005",
+      "corpus": "OPI, Dolly, MMLU, BoolQ (short context) and Musique, NarrativeQA (long context); FPR on clean splits, FNR on injected splits",
+      "_note": "Averages are the papers own final column in Tables 1 and 2. Detection rate = 100 - FNR.",
+      "rows": [
+        {
+          "system": "PIShield",
+          "metric": "FPR (avg) / FNR (avg)",
+          "value_pct": 0.5,
+          "fnr_pct": 1.4,
+          "verified": "verbatim",
+          "quote": "Table 1 average 0.005; Table 2 average 0.014"
+        },
+        {
+          "system": "PIGuard",
+          "metric": "FPR (avg) / FNR (avg)",
+          "value_pct": 0.7,
+          "fnr_pct": 70.2,
+          "verified": "verbatim",
+          "quote": "Table 1 average 0.007; Table 2 average 0.702"
+        },
+        {
+          "system": "PromptArmor",
+          "metric": "FPR (avg) / FNR (avg)",
+          "value_pct": 1.3,
+          "fnr_pct": 45.9,
+          "verified": "verbatim",
+          "quote": "Table 1 average 0.013; Table 2 average 0.459"
+        },
+        {
+          "system": "InjecGuard",
+          "metric": "FPR (avg) / FNR (avg)",
+          "value_pct": 8.2,
+          "fnr_pct": 66.3,
+          "verified": "verbatim",
+          "quote": "Table 1 average 0.082; Table 2 average 0.663"
+        },
+        {
+          "system": "ProtectAI-deberta",
+          "metric": "FPR (avg) / FNR (avg)",
+          "value_pct": 10.1,
+          "fnr_pct": 75.9,
+          "verified": "verbatim",
+          "quote": "Table 1 average 0.101; Table 2 average 0.759"
+        },
+        {
+          "system": "TaskTracker",
+          "metric": "FPR (avg) / FNR (avg)",
+          "value_pct": 27.4,
+          "fnr_pct": 31.7,
+          "verified": "verbatim",
+          "quote": "Table 1 average 0.274; Table 2 average 0.317"
+        },
+        {
+          "system": "AttentionTracker",
+          "metric": "FPR (avg) / FNR (avg)",
+          "value_pct": 32.8,
+          "fnr_pct": 55.3,
+          "verified": "verbatim",
+          "quote": "Table 1 average 0.328; Table 2 average 0.553"
+        },
+        {
+          "system": "DataSentinel",
+          "metric": "FPR (avg) / FNR (avg)",
+          "value_pct": 33.6,
+          "fnr_pct": 10.4,
+          "verified": "verbatim",
+          "quote": "Table 1 average 0.336; Table 2 average 0.104"
+        },
+        {
+          "system": "PromptGuard",
+          "metric": "FPR (avg) / FNR (avg)",
+          "value_pct": 40.3,
+          "fnr_pct": 8.7,
+          "verified": "verbatim",
+          "quote": "Table 1 average 0.403; Table 2 average 0.087"
+        }
+      ]
+    }
+  ]
+}

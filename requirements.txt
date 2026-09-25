@@ -1,0 +1,30 @@
+fastapi
+uvicorn
+langchain
+langchain-community
+langgraph
+langchain-ollama
+httpx
+pydantic
+python-dotenv
+chromadb
+sqlalchemy
+psycopg2-binary
+prometheus-client
+cryptography
+numpy==1.26.4
+pandas
+matplotlib
+pytest
+pytest-asyncio
+rich
+
+# paper build only — figures, decks and the manuscript. Not imported by the
+# pipeline or by the test suite.
+pillow
+python-docx
+python-pptx
+
+# site build only
+mkdocs
+mkdocs-material
