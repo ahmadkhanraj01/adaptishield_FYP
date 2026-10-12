@@ -76,6 +76,7 @@ Layer 0  Transport & server trust         (server allowlist · rug-pull detectio
 | 5 | Audit report | `layer5/audit_report.py` | Self-contained HTML audit dashboard (to be replaced by the web Admin Console) |
 | — | Pipeline | `adaptishield_pipeline.py` | `AdaptiShieldPipeline` wires the layers; `PipelineConfig` switches layers on and off |
 | — | Spotlighting baseline | `baselines/spotlighting.py` | Prompt-level comparison defense, run as a `PipelineConfig` arm |
+| — | Trained classifier baseline | `baselines/text_classifier.py` + `evaluation/train_classifier.py` | The supervised comparison arm: TF-IDF + logistic regression (numpy), per-epoch P/R/F1/support/accuracy, recall per attack type, benign FPR per cohort, rephrasing probe with an empty-input control. **A baseline, not part of the pipeline** — it judges wording, so rewording moves it; the causal gate judges the action |
 | — | Shared helpers | `utils/parsing.py`, `utils/hashing.py` | Action extraction; prompt fingerprints |
 
 ---

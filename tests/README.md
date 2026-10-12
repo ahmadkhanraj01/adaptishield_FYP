@@ -1,9 +1,9 @@
 # tests — Automated Test Suite
 
-**Status:** ✅ **502 tests passing**, ~8 s, no LLM / no network / no GPU
+**Status:** ✅ **538 tests passing** (`test_grpo_kaggle.py` 33, `test_text_classifier.py` 27; 478 before both), ~15 s, no LLM / no network / no GPU
 
 ```bash
-python3 -m pytest tests/ -q          # 502 passed in ~8s
+python3 -m pytest tests/ -q          # 538 passed
 python3 -m pytest tests/test_layer5.py -v
 ```
 
@@ -18,7 +18,7 @@ python3 -m pytest tests/test_layer5.py -v
 | `test_target_match.py` | Normalized mediator-target match (§6m) + the **keyword grounding** check (§6p) | 21 |
 | `test_probe_diagnostic.py` | The read-only root-cause tool, incl. the classifier-ordering bug that mislabelled 3 healthy probes (§6m) | 11 |
 | `test_corpus.py` | Corpus invariants, the Wilson interval, the IE-ablation join, and the FPR **staleness guard** (§6n, §6o) | 22 |
-| `test_grpo_kaggle.py` | GRPO env + trainer: threshold replay, reward table, joint action space, tied-reward **no-op guard** (§6l–6n) | 23 |
+| `test_grpo_kaggle.py` | GRPO env + trainer: threshold replay, reward table, joint action space, tied-reward **no-op guard** (§6l–6n), and the per-epoch metrics: the confusion matrix agrees with the reward's own catch predicate, the P/R/F1/support arithmetic (incl. the empty-split case), the held-out address split pinned to `attack_library`, and the epoch hook **observational** — same chosen action with and without it | 33 |
 | `test_layer5.py` | The human gate + dashboard escaping (§6n) | 20 |
 | `test_ablation.py` | Phase 7 arms + campaign checkpointing | 15 |
 | `test_attribution.py` | Per-layer attribution ordering + the corpus invariants that keep the benchmark able to answer its own question, plus the Phase 10 arms and derived-ASR semantics | 39 |
@@ -30,6 +30,7 @@ python3 -m pytest tests/test_layer5.py -v
 | `test_probe_corpus.py` | The offline instrument: that a stale corpus is **refused** rather than reported, that prompt fingerprints ignore comments but catch an edited prompt string, that `rescore` calls the shipped `_decide_takeover` (asserted by interception, not by matching numbers), that sanitized regimes are scored against the **sanitized** text, and that the projection declines to pool. | 22 |
 | `test_injecagent.py` | Phase 12's external corpus: provenance and exclusions, the stratum computed by **3B's own predicate** (not a regex resembling it), the sampler's determinism and spread, and the two ways Layer 4 could absorb all 60 cases | 33 |
 | `test_agentdojo_attacks.py` | The holdout corpus: that the lexicon **freeze commit** is recorded so the pre-registration is checkable rather than trusted, that the plain attack wrapper was used (a stronger hijack would make it easier), that the injection sits inside real content, that the stratum equals the live predicate, and that no tool the draw touches is missing from scope. | 16 |
+| `test_text_classifier.py` | The trained baseline (`baselines/text_classifier.py` + `evaluation/train_classifier.py`): the P/R/F1/support arithmetic **and that it agrees with `grpo_env`'s copy** of the same formula, the tokenizer's **punctuation-blind** contract (`''`, `'snippet'`, `id'` are quotation shape and must not become features — a model allowed to key on them scores on format and moves the moment a span is edited), the vectorizer's determinism / `min_df` / unseen-token handling, that a separable problem is learned and a fixed seed reproduces it exactly, that balanced class weights do not sacrifice the 5-attack minority to 45 benign documents, that the corpus loader tags provenance and the split is disjoint and stratified, that the **twin cohort really removes the injection** (a twin still carrying it is a label error) and its pair-split keeps originals beside their twins, that the **rephrasing probe reports all six rows with token-retention**, that `paraphrase` substitutes rather than deletes, that **the probe's printed verdict is derived from the rows it prints** (the bug it pins: a sentence claiming rephrasing moved the model sitting above a table showing 0.000), and — the tripwire — that the **default code path never opens the frozen AgentDojo attack holdout**. | 27 |
 | `__init__.py` | Package marker | — |
 
 ---

@@ -39,6 +39,18 @@ and falls back to CPU, which costs nothing measurable.
 
 No Ollama/pipeline here: the reward is replayed from the recorded diagnostics,
 which is exact for campaign episodes (see grpo_env.py).
+
+Per-epoch report
+────────────────
+Every `--metrics-every` steps (default 10) the trainer records the policy's own
+argmax scored on the train split, the held-out-attack-address split and the full
+batch — precision, recall, F1, support and accuracy — into `epoch_metrics.csv`
+beside the proposal, and the last checkpoint per split is copied into the
+proposal JSON. "Epoch" means checkpoint: GRPO scores every step on the full
+batch, so there is no pass over the data to delimit; the CSV carries the raw
+step as well, so the table cannot be misread as one. The hook observes the
+policy, never writes to it (a test pins that a run with it attached chooses the
+same action as one without).
 """
 
 import argparse
@@ -61,7 +73,8 @@ from typing import List, Optional
 try:
     from grpo_env import (RewardConfig, Policy, EpisodeFeatures,
                           load_episodes, evaluate_policy, ie_grid,
-                          status_under_policy)
+                          status_under_policy, confusion_counts,
+                          classification_metrics)
 except ImportError:  # running as a module, or on Kaggle with a nested input dir
     _here = os.path.dirname(os.path.abspath(__file__))
     _found = None
@@ -102,7 +115,8 @@ except ImportError:  # running as a module, or on Kaggle with a nested input dir
 
     from grpo_env import (RewardConfig, Policy, EpisodeFeatures,   # noqa: E402
                           load_episodes, evaluate_policy, ie_grid,
-                          status_under_policy)
+                          status_under_policy, confusion_counts,
+                          classification_metrics)
 
 
 def _find_episodes() -> Optional[str]:
@@ -192,7 +206,8 @@ def _base_rewards(episodes, grid, rc, min_intervention_eps, current):
             - min_intervention_eps * abs(t - current) for t in grid]
 
 
-def train_torch(episodes, grid, rc, group_size, steps, lr, min_intervention_eps, seed, current):
+def train_torch(episodes, grid, rc, group_size, steps, lr, min_intervention_eps, seed,
+                current, on_step=None):
     import torch
     device = _torch_device()
     torch.manual_seed(seed)
@@ -200,24 +215,28 @@ def train_torch(episodes, grid, rc, group_size, steps, lr, min_intervention_eps,
                             dtype=torch.float32, device=device)
     logits = torch.zeros(len(grid), requires_grad=True, device=device)
     opt = torch.optim.Adam([logits], lr=lr)
-    for _ in range(steps):
+    for _step in range(steps):
         dist = torch.distributions.Categorical(logits=logits)
         idx = dist.sample((group_size,))                   # a GRPO group
         advantages = reward_t[idx] - reward_t[idx].mean()  # group-relative baseline
         loss = -(advantages.detach() * dist.log_prob(idx)).mean()
         opt.zero_grad(); loss.backward(); opt.step()
+        if on_step is not None:                            # epoch checkpoint
+            with torch.no_grad():
+                on_step(_step, torch.softmax(logits, dim=0).cpu().tolist())
     with torch.no_grad():
         probs = torch.softmax(logits, dim=0).cpu().tolist()
     return probs, _base_rewards(episodes, grid, rc, min_intervention_eps, current), device
 
 
-def train_pure(episodes, grid, rc, group_size, steps, lr, min_intervention_eps, seed, current):
+def train_pure(episodes, grid, rc, group_size, steps, lr, min_intervention_eps, seed,
+               current, on_step=None):
     import math, random
     random.seed(seed)
     base = _base_rewards(episodes, grid, rc, min_intervention_eps, current)
     n = len(grid)
     logits = [0.0] * n
-    for _ in range(steps):
+    for _step in range(steps):
         m = max(logits)
         exps = [math.exp(l - m) for l in logits]
         Z = sum(exps)
@@ -231,6 +250,11 @@ def train_pure(episodes, grid, rc, group_size, steps, lr, min_intervention_eps, 
             for j in range(n):                               # ∇ log π: [i==j] − p_j
                 grad[j] += adv * ((1.0 if i == j else 0.0) - probs[j])
         logits = [l + lr * (g / group_size) for l, g in zip(logits, grad)]  # ascent
+        if on_step is not None:                              # epoch checkpoint
+            m = max(logits)
+            exps = [math.exp(l - m) for l in logits]
+            Z = sum(exps)
+            on_step(_step, [e / Z for e in exps])
     m = max(logits)
     exps = [math.exp(l - m) for l in logits]
     Z = sum(exps)
@@ -404,7 +428,7 @@ def joint_reward(episodes: List[EpisodeFeatures], space: ActionSpace,
 
 
 def train_joint_pure(episodes, space, base, incumbent, rc, group_size, steps, lr,
-                     eps, seed):
+                     eps, seed, on_step=None):
     """
     GRPO over the factored joint policy, standard library only.
 
@@ -433,7 +457,7 @@ def train_joint_pure(episodes, space, base, incumbent, rc, group_size, steps, lr
             cache[key] = joint_reward(episodes, space, list(key), base, incumbent, rc, eps)
         return cache[key]
 
-    for _ in range(steps):
+    for _step in range(steps):
         probs = [softmax(ls) for ls in logits]
         group = [[random.choices(range(s), weights=p, k=1)[0]
                   for s, p in zip(sizes, probs)] for _ in range(group_size)]
@@ -447,13 +471,15 @@ def train_joint_pure(episodes, space, base, incumbent, rc, group_size, steps, lr
                     grads[d][j] += adv * ((1.0 if i == j else 0.0) - probs[d][j])
         logits = [[l + lr * (g / group_size) for l, g in zip(ls, gs)]
                   for ls, gs in zip(logits, grads)]
+        if on_step is not None:                  # epoch checkpoint (post-update)
+            on_step(_step, [softmax(ls) for ls in logits])
 
     probs = [softmax(ls) for ls in logits]
     return probs, "cpu(pure-python)", cache
 
 
 def train_joint_torch(episodes, space, base, incumbent, rc, group_size, steps, lr,
-                      eps, seed):
+                      eps, seed, on_step=None):
     """Same algorithm on torch (Kaggle P100); reward stays a Python callable."""
     import torch
     device = _torch_device()
@@ -469,7 +495,7 @@ def train_joint_torch(episodes, space, base, incumbent, rc, group_size, steps, l
             cache[key] = joint_reward(episodes, space, list(key), base, incumbent, rc, eps)
         return cache[key]
 
-    for _ in range(steps):
+    for _step in range(steps):
         dists = [torch.distributions.Categorical(logits=l) for l in logits]
         samples = [d.sample((group_size,)) for d in dists]
         group = [[int(s[g]) for s in samples] for g in range(group_size)]
@@ -478,6 +504,9 @@ def train_joint_torch(episodes, space, base, incumbent, rc, group_size, steps, l
         logp = sum(d.log_prob(s) for d, s in zip(dists, samples))
         loss = -(advantages * logp).mean()
         opt.zero_grad(); loss.backward(); opt.step()
+        if on_step is not None:                  # epoch checkpoint (post-update)
+            with torch.no_grad():
+                on_step(_step, [torch.softmax(l, dim=0).cpu().tolist() for l in logits])
 
     with torch.no_grad():
         probs = [torch.softmax(l, dim=0).cpu().tolist() for l in logits]
@@ -487,7 +516,7 @@ def train_joint_torch(episodes, space, base, incumbent, rc, group_size, steps, l
 def train_joint(episodes: List[EpisodeFeatures], space: ActionSpace, base: Policy,
                 rc: RewardConfig, group_size: int = 12, steps: int = 400,
                 lr: float = 0.1, min_intervention_eps: Optional[float] = None,
-                seed: int = 0, backend: str = "auto"):
+                seed: int = 0, backend: str = "auto", on_step=None):
     """
     Train the joint policy and return a VERIFIED proposal.
 
@@ -497,6 +526,10 @@ def train_joint(episodes: List[EpisodeFeatures], space: ActionSpace, base: Polic
     accepted only if its exact batch reward strictly beats the incumbent's.
     Two evaluations — no enumeration — so this is the same guard whether the
     space has 60 joint actions or 10^6.
+
+    `on_step(i, probs)` is called at the end of every iteration with the
+    POST-update probabilities — see _epoch_recorder. It observes; it cannot
+    influence the search.
     """
     incumbent = space.incumbent(base)
     eps = _auto_intervention_eps(episodes, rc) if min_intervention_eps is None \
@@ -506,7 +539,7 @@ def train_joint(episodes: List[EpisodeFeatures], space: ActionSpace, base: Polic
                                     (backend == "auto" and _torch_available())) \
         else train_joint_pure
     probs, device, cache = trainer(episodes, space, base, incumbent, rc,
-                                   group_size, steps, lr, eps, seed)
+                                   group_size, steps, lr, eps, seed, on_step)
 
     policy_choice = [max(range(len(p)), key=lambda i: p[i]) for p in probs]
 
@@ -575,19 +608,172 @@ def _flat_dimensions(episodes, space, base, incumbent, rc, eps) -> List[str]:
     return flat
 
 
+# ══════════════════════════════════════════════════════════════════════
+#  PER-EPOCH METRICS — precision / recall / F1 / support / accuracy
+# ══════════════════════════════════════════════════════════════════════
+#
+# WHY THIS EXISTS. A policy-gradient trainer that reports only its final
+# reward hides the two things a reader needs to trust it: whether the policy
+# actually improved over training, and whether it improved on the attacks it
+# was NOT trained on. This block records, at every checkpoint, the policy's
+# own argmax scored by the exact same replay the reward uses — so the epoch
+# table and the final proposal can never disagree about the same step.
+#
+# WHAT AN "EPOCH" IS HERE. GRPO has no epochs: every step scores its group on
+# the FULL batch, so there is no pass over the data to delimit. An epoch is
+# therefore a CHECKPOINT — every `--metrics-every` steps — and the CSV carries
+# both the checkpoint ordinal and the raw step so the table cannot be read as
+# something it is not.
+
+# The two attacker addresses red_team/attack_library.py keeps out of training
+# entirely (holdout_targets()). `EpisodeFeatures.from_dict` deliberately drops
+# `case_id` — the LabeledEpisode contract is pinned field-for-field by
+# tests/test_grpo_kaggle.py — so the split is recovered here from the one field
+# that must contain the address for the attack to mean anything: the action the
+# agent proposed. Addressless attacks carry no address in either field and are
+# training data, which is correct: they were never a held-out target.
+#
+# The Kaggle bundle cannot import red_team, so the addresses are inlined. A
+# test pins this tuple against holdout_targets(), so editing the split there
+# fails HERE loudly instead of silently reclassifying held-out attacks as
+# training data — which is exactly the §6d memorisation defect in new clothing.
+HOLDOUT_TARGET_ADDRESSES = ("leaker@shadow-mail.net", "siphon@nullroute.org")
+
+
+def episode_split(ep: EpisodeFeatures) -> str:
+    """'benign' | 'train' | 'holdout' — see HOLDOUT_TARGET_ADDRESSES."""
+    if not ep.is_malicious:
+        return "benign"
+    action = (ep.proposed_action or "").lower()
+    return "holdout" if any(a in action for a in HOLDOUT_TARGET_ADDRESSES) \
+        else "train"
+
+
+def _metrics_splits(episodes: List[EpisodeFeatures]):
+    """(name, subset) pairs the epoch table reports on.
+
+    `train` carries the benign controls: a false positive on benign content is
+    charged to the cohort the policy was fitted on. `holdout` is attacks only —
+    the held-out attacker addresses — and its precision would read 1.0 by
+    construction if benign cases were excluded from `train` too, so the two
+    rows must be read as one table.
+    """
+    train = [e for e in episodes if episode_split(e) in ("train", "benign")]
+    holdout = [e for e in episodes if episode_split(e) == "holdout"]
+    return [("train", train), ("holdout", holdout), ("all", list(episodes))]
+
+
+def epoch_metrics(step: int, epoch: int, policy: Policy, action_desc: str,
+                  splits) -> List[dict]:
+    """One row per split: the policy's argmax at this checkpoint, scored by
+    exact replay (status_under_policy — the reward's own predicate)."""
+    rows = []
+    for name, subset in splits:
+        m = classification_metrics(confusion_counts(subset, policy))
+        rows.append({
+            "epoch": epoch, "step": step, "split": name,
+            "n": m["n"],
+            "support_attack": m["support_attack"],
+            "support_benign": m["support_benign"],
+            "tp": m["tp"], "fp": m["fp"], "fn": m["fn"], "tn": m["tn"],
+            "precision": round(m["precision"], 4),
+            "recall":    round(m["recall"], 4),
+            "f1":        round(m["f1"], 4),
+            "accuracy":  round(m["accuracy"], 4),
+            "action":    action_desc,
+        })
+    return rows
+
+
+CSV_FIELDS = ["epoch", "step", "split", "n", "support_attack", "support_benign",
+              "tp", "fp", "fn", "tn", "precision", "recall", "f1", "accuracy",
+              "action"]
+
+
+def _epoch_recorder(resolve, episodes: List[EpisodeFeatures],
+                    metrics_every: int, steps: int):
+    """
+    Build (rows, on_step) for a training loop. `resolve(probs)` turns the
+    policy's current probabilities into (Policy, action description) — the
+    joint space and the scalar grid differ only in that, so one recorder
+    serves both.
+
+    The hook is OBSERVATIONAL: it reads the probabilities, never writes to
+    them. A test pins that a run with the hook attached chooses the same
+    action as one without it — a metrics hook that perturbed the search would
+    be a worse defect than no metrics at all.
+    """
+    rows: List[dict] = []
+    splits = _metrics_splits(episodes)
+    if metrics_every <= 0:
+        return rows, (lambda i, probs: None)
+
+    def on_step(step_index: int, probs) -> None:
+        step = step_index + 1
+        # Checkpoints every `metrics_every` steps, and always the last one, so
+        # the table's final row is the policy that actually produced the
+        # proposal rather than the nearest multiple below it.
+        if step % metrics_every and step != steps:
+            return
+        policy, desc = resolve(probs)
+        rows.extend(epoch_metrics(step, len(rows) // len(splits) + 1,
+                                  policy, desc, splits))
+
+    return rows, on_step
+
+
+def write_epoch_metrics(rows: List[dict], path: str) -> str:
+    """Write the epoch table. CSV on purpose: the reader of this file is a
+    spreadsheet — the results table of a report — not a program. Every other
+    artifact in this project is JSON, and this one is the exception."""
+    import csv
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    with open(path, "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=CSV_FIELDS)
+        w.writeheader()
+        for r in rows:
+            w.writerow(r)
+    return path
+
+
+def _print_epoch_summary(rows: List[dict]) -> None:
+    """First and last checkpoint, train and holdout — the two lines a reader
+    needs to see whether training moved anything, and where."""
+    if not rows:
+        return
+    by_split = {}
+    for r in rows:
+        by_split.setdefault(r["split"], []).append(r)
+    print(f"\n[grpo] per-epoch detection metrics ({len(rows)} rows, "
+          f"{len(by_split.get('train', []))} checkpoints):")
+    for split in ("train", "holdout"):
+        series = by_split.get(split)
+        if not series:
+            continue
+        for tag, r in (("first", series[0]), ("last ", series[-1])):
+            print(f"        {split:<8} {tag} epoch={r['epoch']:<3} "
+                  f"step={r['step']:<4} n={r['n']:<4} "
+                  f"precision={r['precision']:.3f} recall={r['recall']:.3f} "
+                  f"f1={r['f1']:.3f} accuracy={r['accuracy']:.3f}")
+    if len(by_split.get("train", [])) > 1 \
+            and by_split["train"][0]["f1"] == by_split["train"][-1]["f1"]:
+        print("        (flat: the policy moved nothing the replay can see — "
+              "consistent with a no-op proposal, printed below)")
+
+
 def train(episodes: List[EpisodeFeatures], grid: List[float],
           current_ie_threshold: float, rc: RewardConfig,
           group_size: int = 8, steps: int = 300, lr: float = 0.1,
           min_intervention_eps: float = 1e-3, seed: int = 0,
-          backend: str = "auto"):
+          backend: str = "auto", on_step=None):
     if backend == "torch" or (backend == "auto" and _torch_available()):
         probs, base_rewards, device = train_torch(
             episodes, grid, rc, group_size, steps, lr, min_intervention_eps, seed,
-            current_ie_threshold)
+            current_ie_threshold, on_step)
     else:
         probs, base_rewards, device = train_pure(
             episodes, grid, rc, group_size, steps, lr, min_intervention_eps, seed,
-            current_ie_threshold)
+            current_ie_threshold, on_step)
     # 1-D PATH ONLY. Decide on the exact reward table, not on the learned
     # probabilities. This is a regression guard for the single-scalar case, kept
     # because the 5-point grid is trivially enumerable and the defect below must
@@ -860,12 +1046,32 @@ def _run_joint(episodes, grid, current, rc, args, out_path, resolved):
     for name, vals in space.dims:
         print(f"          {name:<28} {vals}")
 
+    # Per-epoch metrics (precision / recall / F1 / support / accuracy on the
+    # train and held-out splits) recorded from the policy's own argmax at each
+    # checkpoint, by exact replay. Default ON: on Kaggle the kernel receives no
+    # CLI arguments, so a deliverable that only a flag can enable can never be
+    # produced in the one environment that matters.
+    def _resolve(probs_):
+        action = [max(range(len(p)), key=lambda i: p[i]) for p in probs_]
+        return space.to_policy(action, base), json.dumps(space.describe(action))
+    rows, on_step = _epoch_recorder(_resolve, episodes,
+                                    getattr(args, "metrics_every", 0), args.steps)
+
     chosen, probs, incumbent, eps, device, diag = train_joint(
         episodes, space, base, rc,
         group_size=args.group_size, steps=args.steps, lr=args.lr,
         min_intervention_eps=(args.min_intervention_eps
                               if args.min_intervention_eps != 1e-3 else None),
-        seed=args.seed, backend=args.backend)
+        seed=args.seed, backend=args.backend, on_step=on_step)
+
+    metrics_path = None
+    if rows:
+        metrics_path = write_epoch_metrics(
+            rows, os.path.join(os.path.dirname(out_path) or ".",
+                               "epoch_metrics.csv"))
+        print(f"\n[grpo] wrote {metrics_path} "
+              f"({len(rows)} rows, {args.metrics_every}-step checkpoints)")
+        _print_epoch_summary(rows)
 
     print(f"\n[grpo] intervention eps (auto-scaled below the smallest real "
           f"single-episode gain) = {eps:.6f}")
@@ -914,6 +1120,16 @@ def _run_joint(episodes, grid, current, rc, args, out_path, resolved):
         "diagnostics": diag,
         "post_update": after,
     }
+    if rows:
+        # Provenance: the epoch table is a separate CSV, so the proposal names
+        # it and carries the last checkpoint per split. A number in the paper
+        # must be traceable from the artifact that claims it (Rules §6).
+        proposal["joint"]["epoch_metrics"] = {
+            "file": os.path.basename(metrics_path),
+            "checkpoints": len({r["step"] for r in rows}),
+            "every_steps": args.metrics_every,
+            "final": {r["split"]: r for r in rows if r["step"] == rows[-1]["step"]},
+        }
     # build_proposal summarises the SCALAR path; drop its post-update line and
     # restate the outcome under the JOINT policy, so one file cannot carry two
     # disagreeing summaries.
@@ -970,6 +1186,13 @@ def main():
                          "agree on rewards, verdict and chosen action. Only "
                          "meaningful where torch exists (the Kaggle kernel); "
                          "exits non-zero on a reward-level disagreement.")
+    ap.add_argument("--metrics-every", type=int, default=10,
+                    help="record precision / recall / F1 / support / accuracy "
+                         "for the policy's argmax every N steps, on the train, "
+                         "held-out and full splits, into epoch_metrics.csv next "
+                         "--out. 0 disables. Default 10 — on Kaggle no CLI "
+                         "arguments arrive, so the kernel must emit this "
+                         "unasked.")
     args = ap.parse_args()
 
     # Kaggle runs this file as a bare script and passes no arguments, so a flag
@@ -1024,11 +1247,30 @@ def main():
         _run_joint(episodes, grid, current, rc, args, out_path, resolved)
         return
 
+    def _resolve(probs_):
+        i = max(range(len(probs_)), key=lambda j: probs_[j])
+        return Policy(ie_threshold=grid[i]), f"ie_threshold={grid[i]}"
+    rows, on_step = _epoch_recorder(_resolve, episodes,
+                                    getattr(args, "metrics_every", 0), args.steps)
+
     chosen, probs, base_rewards, device = train(
         episodes, grid, current, rc,
         group_size=args.group_size, steps=args.steps, lr=args.lr,
         min_intervention_eps=args.min_intervention_eps, seed=args.seed,
-        backend=backend)
+        backend=backend, on_step=on_step)
+
+    if rows:
+        # The scalar PATH decides on the exact reward table (see train()), not
+        # on this policy — so the table describes what the policy LEARNED, which
+        # is the evidence the reward structure was learnable. It is not the
+        # proposal, and the printed note below says so.
+        metrics_path = write_epoch_metrics(
+            rows, os.path.join(os.path.dirname(out_path) or ".", "epoch_metrics.csv"))
+        print(f"\n[grpo] wrote {metrics_path} "
+              f"({len(rows)} rows, {args.metrics_every}-step checkpoints)")
+        _print_epoch_summary(rows)
+        print("        (this is the POLICY's argmax trajectory; the scalar "
+              "proposal itself is decided on the exact reward table)")
 
     print(f"[grpo] per-threshold mean reward (+ intervention bonus):")
     for g, r in zip(grid, base_rewards):

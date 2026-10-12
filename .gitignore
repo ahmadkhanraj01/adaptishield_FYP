@@ -41,6 +41,7 @@ evaluation/kaggle/dataset/
 evaluation/kaggle/output/
 evaluation/kaggle/kernel/
 evaluation/kaggle/proposed_update.json
+evaluation/kaggle/epoch_metrics.csv
 evaluation/kaggle/*.log
 site/
 docs/site_src/docs/

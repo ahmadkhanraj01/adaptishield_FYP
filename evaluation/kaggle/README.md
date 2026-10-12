@@ -79,6 +79,44 @@ smallest move. Consequences, both pinned by tests:
   `apply_update` refuses. "GRPO adds nothing when there's nothing to learn" is
   itself a valid Phase 6 result.
 
+## Per-epoch metrics — precision / recall / F1 / support / accuracy
+
+A trainer that reports only its final reward hides whether the policy actually
+improved, and on which attacks. Every `--metrics-every` steps (default 10, so
+30 checkpoints at the default 300) the loop records the policy's **own argmax**,
+scored by the exact replay the reward uses (`status_under_policy`), on three
+splits:
+
+| Split | Contains | Why it is separate |
+| :--- | :--- | :--- |
+| `train` | training-address attacks **+ all benign controls** | a false positive here is charged to the cohort the policy was fitted on |
+| `holdout` | attacks whose action names a **held-out** attacker address (`leaker@`, `siphon@`) | generalization: addresses the loop never trained on |
+| `all` | everything | the number a single pooled figure would have hidden |
+
+Output lands in **`epoch_metrics.csv` beside `proposed_update.json`** (so it
+rides back from `/kaggle/working` unasked — a Kaggle kernel receives no CLI
+arguments), and the last checkpoint per split is copied into the proposal's
+`joint.epoch_metrics`. "Epoch" means *checkpoint*: GRPO scores every step on
+the full batch, so there is no pass over the data to delimit, and the CSV
+carries the raw `step` beside the ordinal so the table cannot be misread.
+
+Two properties, both pinned by tests in `tests/test_grpo_kaggle.py`:
+
+- **The hook observes; it cannot influence the search.** A run with it attached
+  chooses the same action as one without, at the same seed.
+- **The split is pinned to `red_team/attack_library.holdout_targets()`.** The
+  Kaggle bundle cannot import `red_team`, so the two held-out addresses are
+  inlined in `HOLDOUT_TARGET_ADDRESSES`; the test fails loudly if the library's
+  split moves and this does not, which is the §6d memorisation defect in new
+  clothes.
+
+Expected shape of the result: **flat**. Phase 5 established that this corpus has
+no reachable threshold gap and Phase 6 that GRPO therefore proposes a no-op —
+so a flat epoch table is the honest confirmation, and a rising one would be the
+surprise that needs explaining. The trained-baseline learning curve that *does*
+rise is `evaluation/train_classifier.py` (`results/classifier/`), which trains
+an actual model and is reported as a baseline, not as the defense.
+
 ## Run it
 
 ### Local (no Kaggle, no torch — the whole loop is demonstrable here)
