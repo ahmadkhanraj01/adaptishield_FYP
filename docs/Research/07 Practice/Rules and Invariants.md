@@ -122,3 +122,4 @@ before.
   `README.md`, and where affected `Architecture.md` / `Design.md` / `Rules.md` /
   `Phase.md`
 - 🟡 **Commits and pushes only when asked.** Branch off `main` first
+- 🔴 **Git identity** — every commit, merge and push is authored as `ahmadkhanraj01`; never use the name "Claude" in git history or PRs (no `Co-Authored-By` trailer, no "Generated with Claude Code" line, no Claude author)

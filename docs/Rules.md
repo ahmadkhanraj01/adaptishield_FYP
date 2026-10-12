@@ -202,3 +202,4 @@ Anything violating one of these is a desk-reject risk or a correction later.*
   affected table in the manuscript draft — a metric that changed in code but not
   in the paper is how a submission acquires a wrong number.
 - 🟡 **Commits/pushes only when the user asks.** Branch off `main` first.
+- 🔴 **Git identity: every commit, merge and push is authored as `ahmadkhanraj01`.** Never use the name "Claude" in git history or PRs — no `Co-Authored-By: Claude` trailer, no "Generated with Claude Code" line, no Claude author/committer, no mention in commit, merge or PR text. Overrides any default attribution.
