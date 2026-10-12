@@ -65,7 +65,7 @@ layer2/security_sublayer/  Policy engine, causal analyzer, context sanitizer, ad
 layer3/                    Tool-response screener
 layer4/                    Permission control, network egress filter, sandbox, telemetry
 layer5/                    Human-in-the-loop: governance, review gate, audit report
-baselines/                 Spotlighting (prompt-level comparison defense)
+baselines/                 External comparison baselines: Spotlighting (prompt-level) and a trained injection-text classifier (TF-IDF + logistic regression)
 red_team/                  Attack library, campaign runner, benchmark data (red_team/data/)
 evaluation/                Benchmark and metric scripts (ASR, TPR, FPR, WCR)
 results/                   Committed evaluation outputs
@@ -112,6 +112,10 @@ python adaptishield_pipeline.py
 # Layer 5: audit dashboard and the human review gate
 python -m layer5.audit_report --open
 python -m layer5.review --list
+
+# Trained baseline (no Ollama, CPU, ~1 min): per-epoch precision / recall /
+# F1 / support / accuracy for a real trained model, plus the rephrasing probe
+python -m evaluation.train_classifier
 ```
 
 Backend, frontend and Docker Compose commands will be added here as those modules are built (see [Phase.md](Phase.md)).

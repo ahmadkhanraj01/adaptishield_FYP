@@ -1,0 +1,59 @@
+{
+  "generated": "2026-10-12T09:38:58.406105+00:00",
+  "commit": "44adf79c0ba3e5eab74039092cdd6de3b27b523a",
+  "dirty": true,
+  "command": "python3 -m evaluation.train_classifier ",
+  "seed": 0,
+  "hyperparameters": {
+    "epochs": 30,
+    "lr": 0.5,
+    "l2": 0.0001,
+    "batch_size": 32,
+    "max_features": 8000,
+    "min_df": 2,
+    "val_fraction": 0.15,
+    "test_fraction": 0.15,
+    "class_weight": "balanced",
+    "vectorizer": "word 1-2 gram TF-IDF, L2-normalized, fit on TRAIN only",
+    "tokenizer": "lowercase [a-z0-9]+ \u2014 apostrophes EXCLUDED. Both corpora are Python dict reprs, so quote shape ('' , 'snippet' , id') was carrying the cross-corpus score as a format artifact: inspecting the weights showed '' alone at -1.07, which means the model had learned how the twins were built rather than what an injection says. Chosen from train/val inspection; the frozen AgentDojo attack holdout was never read in making this choice.",
+    "model": "L2-regularised logistic regression, mini-batch SGD"
+  },
+  "corpus": {
+    "positives": {
+      "source": "InjecAgent direct-harm split (Zhan et al., Findings of ACL 2024, MIT)",
+      "n": 510,
+      "file": "red_team/data/injecagent_dh.json"
+    },
+    "negatives": {
+      "agentdojo_benign": {
+        "source": "AgentDojo v0.1.35 (Debenedetti et al., NeurIPS 2024, MIT)",
+        "n": 60,
+        "file": "red_team/data/agentdojo_benign.json"
+      },
+      "ours_benign": {
+        "source": "attack_library.BENIGN_SCENARIOS (our own, diagnostic at this n)",
+        "n": 8
+      }
+    },
+    "splits": {
+      "train": 406,
+      "val": 86,
+      "test": 86
+    },
+    "disjoint": true
+  },
+  "holdout": {
+    "file": "red_team/data/agentdojo_attacks.json",
+    "read_by_this_run": false,
+    "note": "never read unless --agentdojo-holdout is passed; scoring it spends the holdout for looking, never for tuning"
+  },
+  "confound_controlled": {
+    "pairs": 510,
+    "pairs_dropped_instruction_not_verbatim": 0,
+    "epoch_metrics_file": "epoch_metrics_confound_controlled.csv",
+    "note": "InjecAgent vs its own de-injected twins \u2014 the source-free comparison; quote THIS one against the causal gate, not the cross-corpus table"
+  },
+  "learning_curve": "learning_curve.png",
+  "python": "3.10.12",
+  "numpy": "2.2.6"
+}

@@ -277,6 +277,86 @@ def evaluate_policy(episodes: List[EpisodeFeatures], policy: Policy,
     }
 
 
+# ── classification metrics (per-epoch training report) ───────────────
+# No precision/recall/F1 helper existed anywhere in the repo, and the trainer's
+# own counts (missed / false_pos / correct) do not add up to a confusion matrix:
+# `correct` merges TP and TN, so a recall and a precision cannot be read off it.
+# These two functions are that matrix. They live HERE (stdlib-only, no project
+# imports) because the Kaggle kernel can only see grpo_env + grpo_train, and
+# because the trainer's epoch table and any local report must be computed by the
+# same code or the two will disagree about the same run.
+
+def confusion_counts(episodes: List["EpisodeFeatures"],
+                     policy: "Policy") -> Dict[str, int]:
+    """
+    Confusion matrix of "the security chain stopped it" against ground truth.
+
+    Positive class = malicious. The predicted-positive predicate is
+    `status in STOPPED_STATUSES` — the SAME predicate reward_of() uses — so
+    these counts and the reward can never disagree about which episodes were
+    caught. An episode with no causal diagnostics to replay scores on its
+    recorded status, exactly as status_under_policy() decides.
+    """
+    tp = fp = fn = tn = 0
+    for ep in episodes:
+        stopped = status_under_policy(ep, policy) in STOPPED_STATUSES
+        if ep.is_malicious:
+            if stopped:
+                tp += 1
+            else:
+                fn += 1
+        elif stopped:
+            fp += 1
+        else:
+            tn += 1
+    return {"n": len(episodes), "tp": tp, "fp": fp, "fn": fn, "tn": tn}
+
+
+def classification_metrics(counts: Dict[str, int]) -> Dict[str, Any]:
+    """
+    Precision / recall / F1 / accuracy / support from a confusion matrix.
+
+    The positive class is the attack, so `recall` is the detection rate and
+    `precision` is 1 − (the false-alarm share of everything flagged). Both are
+    reported per class below, because one overall accuracy on an imbalanced
+    batch is a number that cannot be wrong.
+
+    A zero denominator returns 0.0, never NaN and never an exception: an empty
+    holdout subset is a real run, and a metric that crashes on it hides the run
+    it was asked to describe.
+    """
+    tp, fp, fn, tn = counts["tp"], counts["fp"], counts["fn"], counts["tn"]
+    n = counts["n"]
+
+    precision = tp / (tp + fp) if (tp + fp) else 0.0
+    recall    = tp / (tp + fn) if (tp + fn) else 0.0
+    f1        = (2.0 * precision * recall / (precision + recall)) \
+        if (precision + recall) else 0.0
+    accuracy  = (tp + tn) / n if n else 0.0
+
+    support_attack = tp + fn
+    support_benign = tn + fp
+    # The benign class scored as a positive class in its own right (sklearn's
+    # per-class report): "of everything predicted benign, how much was benign"
+    # and "of everything actually benign, how much did we call benign".
+    bn_precision = tn / (tn + fn) if (tn + fn) else 0.0
+    bn_recall    = tn / (tn + fp) if (tn + fp) else 0.0
+    bn_f1        = (2.0 * bn_precision * bn_recall / (bn_precision + bn_recall)) \
+        if (bn_precision + bn_recall) else 0.0
+
+    out = dict(counts)
+    out.update({
+        "support_attack": support_attack,
+        "support_benign": support_benign,
+        "precision":      precision,
+        "recall":         recall,
+        "f1":             f1,
+        "accuracy":       accuracy,
+        "macro_f1":       (f1 + bn_f1) / 2.0,
+    })
+    return out
+
+
 def load_episodes(path: str) -> List[EpisodeFeatures]:
     """Read a packaged JSONL dataset into EpisodeFeatures."""
     import json

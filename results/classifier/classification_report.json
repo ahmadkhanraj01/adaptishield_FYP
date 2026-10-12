@@ -1,0 +1,266 @@
+{
+  "test": {
+    "n": 86,
+    "tp": 76,
+    "fp": 0,
+    "fn": 0,
+    "tn": 10,
+    "support_attack": 76,
+    "support_benign": 10,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "per_class": {
+      "injection": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 76
+      },
+      "benign": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 10
+      }
+    },
+    "recall_wilson": {
+      "k": 76,
+      "n": 76,
+      "rate": 1.0,
+      "wilson_low": 0.9518847317689024,
+      "wilson_high": 0.9999999999999999
+    },
+    "false_alarm_wilson": {
+      "k": 0,
+      "n": 10,
+      "rate": 0.0,
+      "wilson_low": 0.0,
+      "wilson_high": 0.2775401687666166
+    }
+  },
+  "per_attack_type_recall": {
+    "Data Security Harm": {
+      "k": 27,
+      "n": 27,
+      "rate": 1.0,
+      "wilson_low": 0.8754409628553641,
+      "wilson_high": 1.0
+    },
+    "Financial Harm": {
+      "k": 23,
+      "n": 23,
+      "rate": 1.0,
+      "wilson_low": 0.8568788745827374,
+      "wilson_high": 1.0
+    },
+    "Physical Harm": {
+      "k": 26,
+      "n": 26,
+      "rate": 1.0,
+      "wilson_low": 0.8712669561953784,
+      "wilson_high": 1.0
+    }
+  },
+  "benign_fpr_by_source": {
+    "agentdojo_benign": {
+      "k": 0,
+      "n": 9,
+      "rate": 0.0,
+      "wilson_low": 0.0,
+      "wilson_high": 0.2991527535509594
+    },
+    "ours_benign": {
+      "k": 0,
+      "n": 1,
+      "rate": 0.0,
+      "wilson_low": 0.0,
+      "wilson_high": 0.7934567085261071
+    }
+  },
+  "rephrasing_probe": {
+    "clean": {
+      "k": 76,
+      "n": 76,
+      "rate": 1.0,
+      "wilson_low": 0.9518847317689024,
+      "wilson_high": 0.9999999999999999,
+      "kept": 1.0
+    },
+    "paraphrase": {
+      "k": 76,
+      "n": 76,
+      "rate": 1.0,
+      "wilson_low": 0.9518847317689024,
+      "wilson_high": 0.9999999999999999,
+      "kept": 0.8687156416013323
+    },
+    "datamarking": {
+      "k": 76,
+      "n": 76,
+      "rate": 1.0,
+      "wilson_low": 0.9518847317689024,
+      "wilson_high": 0.9999999999999999,
+      "kept": 1.0
+    },
+    "delimiting": {
+      "k": 76,
+      "n": 76,
+      "rate": 1.0,
+      "wilson_low": 0.9518847317689024,
+      "wilson_high": 0.9999999999999999,
+      "kept": 1.0
+    },
+    "encoding": {
+      "k": 76,
+      "n": 76,
+      "rate": 1.0,
+      "wilson_low": 0.9518847317689024,
+      "wilson_high": 0.9999999999999999,
+      "kept": 0.0
+    },
+    "empty_input": {
+      "k": 76,
+      "n": 76,
+      "rate": 1.0,
+      "wilson_low": 0.9518847317689024,
+      "wilson_high": 0.9999999999999999,
+      "kept": 0.0
+    }
+  },
+  "confound_controlled": {
+    "what_it_is": "InjecAgent positives against their own de-injected twins: same corpus, same format, one imperative removed. The only signal left is the injection itself.",
+    "pairs": 510,
+    "pairs_dropped_instruction_not_verbatim": 0,
+    "splits": {
+      "val": 76,
+      "test": 76,
+      "train": 358
+    },
+    "test": {
+      "n": 152,
+      "tp": 76,
+      "fp": 0,
+      "fn": 0,
+      "tn": 76,
+      "support_attack": 76,
+      "support_benign": 76,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "accuracy": 1.0,
+      "macro_f1": 1.0,
+      "per_class": {
+        "injection": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 76
+        },
+        "benign": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 76
+        }
+      },
+      "recall_wilson": {
+        "k": 76,
+        "n": 76,
+        "rate": 1.0,
+        "wilson_low": 0.9518847317689024,
+        "wilson_high": 0.9999999999999999
+      },
+      "false_alarm_wilson": {
+        "k": 0,
+        "n": 76,
+        "rate": 0.0,
+        "wilson_low": 0.0,
+        "wilson_high": 0.04811526823109757
+      }
+    },
+    "per_attack_type_recall": {
+      "Data Security Harm": {
+        "k": 28,
+        "n": 28,
+        "rate": 1.0,
+        "wilson_low": 0.8793527963418923,
+        "wilson_high": 1.0
+      },
+      "Financial Harm": {
+        "k": 24,
+        "n": 24,
+        "rate": 1.0,
+        "wilson_low": 0.8620194241710247,
+        "wilson_high": 1.0
+      },
+      "Physical Harm": {
+        "k": 24,
+        "n": 24,
+        "rate": 1.0,
+        "wilson_low": 0.8620194241710247,
+        "wilson_high": 1.0
+      }
+    },
+    "rephrasing_probe": {
+      "clean": {
+        "k": 76,
+        "n": 76,
+        "rate": 1.0,
+        "wilson_low": 0.9518847317689024,
+        "wilson_high": 0.9999999999999999,
+        "kept": 1.0
+      },
+      "paraphrase": {
+        "k": 70,
+        "n": 76,
+        "rate": 0.9210526315789473,
+        "wilson_low": 0.8382706480636879,
+        "wilson_high": 0.9633164944785457,
+        "kept": 0.8857013259344254
+      },
+      "datamarking": {
+        "k": 76,
+        "n": 76,
+        "rate": 1.0,
+        "wilson_low": 0.9518847317689024,
+        "wilson_high": 0.9999999999999999,
+        "kept": 1.0
+      },
+      "delimiting": {
+        "k": 76,
+        "n": 76,
+        "rate": 1.0,
+        "wilson_low": 0.9518847317689024,
+        "wilson_high": 0.9999999999999999,
+        "kept": 1.0
+      },
+      "encoding": {
+        "k": 76,
+        "n": 76,
+        "rate": 1.0,
+        "wilson_low": 0.9518847317689024,
+        "wilson_high": 0.9999999999999999,
+        "kept": 0.0
+      },
+      "empty_input": {
+        "k": 76,
+        "n": 76,
+        "rate": 1.0,
+        "wilson_low": 0.9518847317689024,
+        "wilson_high": 0.9999999999999999,
+        "kept": 0.0
+      }
+    },
+    "epoch_metrics_file": "epoch_metrics_confound_controlled.csv"
+  },
+  "agentdojo_attack_holdout": null,
+  "holdout_spent": false,
+  "caveats": [
+    "Corpus-label confound in the FIRST table: positives (InjecAgent) and negatives (AgentDojo benign + ours) come from different corpora, so a perfect score there is source recognition, not injection detection \u2014 the tell is the rephrasing probe: a synonym rewrite changes 13% of the tokens and recall moves +0.000. The `confound_controlled` section removes the confound and is the number to quote.",
+    "Rephrasing, measured rather than assumed: a synonym rewrite costs the confound-controlled model 0.079 of recall (hand-built map, so a LOWER bound on a real rephraser), and costs the cross-corpus model 0.000 because that one reads form instead of wording. Spotlighting's datamarking and delimiting cost 0.000 in both: a character-class tokenizer re-derives every token, so they change the surface a reader sees, not the tokens. Encoding and the empty-input control score identically (1.000 vs 1.000) \u2014 with no features the answer is the model's intercept, so those rows are not detections. AdaptiShield's causal check judges whether the text changed the ACTION, which none of these rewrites changes.",
+    "The AgentDojo benign cohort (n=60) is the false-alarm estimate; our 8 hand-written controls are a diagnostic and are never pooled with it."
+  ]
+}
