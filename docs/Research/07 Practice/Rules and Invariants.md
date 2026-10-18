@@ -121,5 +121,5 @@ before.
 - 🟡 **Keep the docs in sync** — root `README.md`, the relevant per-folder
   `README.md`, and where affected `Architecture.md` / `Design.md` / `Rules.md` /
   `Phase.md`
-- 🟡 **Commits and pushes only when asked.** Branch off `main` first
+- 🟡 **Commits and pushes only when asked.** Never create or switch branches — work on the branch already checked out, so changes show in the user's VS Code diff
 - 🔴 **Git identity** — every commit, merge and push is authored as `ahmadkhanraj01`; never use the name "Claude" in git history or PRs (no `Co-Authored-By` trailer, no "Generated with Claude Code" line, no Claude author)

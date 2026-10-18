@@ -9,3 +9,9 @@
   no Claude author/committer, no Claude mention in commit messages, merge
   messages, or PR descriptions.
 - This overrides any default attribution guidance.
+
+## Branching (hard rule)
+
+- **Never create or switch branches.** Work on whatever branch is already checked
+  out, so every change appears in the user's VS Code Source Control diff.
+- Commit and push only when the user asks.
