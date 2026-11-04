@@ -1,0 +1,47 @@
+site_name: AdaptiShield
+site_description: A security gateway and live monitoring dashboard that protects AI agents against prompt injection
+site_url: https://ahmadkhanraj01.github.io/adaptishield_FYP/
+repo_url: https://github.com/ahmadkhanraj01/adaptishield_FYP
+repo_name: adaptishield_FYP
+docs_dir: docs
+site_dir: site
+exclude_docs: |
+  *.py
+  *.drawio
+  *.drawio.png
+theme:
+  name: material
+  font:
+    text: IBM Plex Sans
+    code: IBM Plex Mono
+  features: [navigation.tabs, navigation.top, content.code.copy, toc.follow]
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle: {icon: material/brightness-7, name: Switch to dark mode}
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle: {icon: material/brightness-4, name: Switch to light mode}
+extra_css: [assets/extra.css]
+markdown_extensions:
+  - admonition
+  - tables
+  - attr_list
+  - md_in_html
+  - pymdownx.superfences
+  - toc: {permalink: true}
+validation:
+  links: {not_found: warn, anchors: warn, absolute_links: warn, unrecognized_links: warn}
+nav:
+  - Home: index.md
+  - How it works: how-it-works.md
+  - Modules: modules.md
+  - Screens: screens.md
+  - Evaluation: evaluation.md
+  - System design: system-design.md
+  - Roadmap: roadmap.md
+  - Documents: documents.md

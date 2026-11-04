@@ -1,6 +1,6 @@
 # evaluation/kaggle — Phase 6 GRPO training (local ↔ Kaggle)
 
-This folder is the Phase 6 seam (see [Phase.md](../../Phase.md) §6): it replaces
+This folder is the Phase 6 seam (see [Phase.md](../../.agent/project/Phase.md) §6): it replaces
 the v1 directional heuristic inside `AdaptiveThreatModel.propose_update()` with a
 **real GRPO policy-gradient loop**, trained off-machine on Kaggle, while keeping
 the exact `LabeledEpisode → ProposedUpdate → apply_update` contract. Nothing

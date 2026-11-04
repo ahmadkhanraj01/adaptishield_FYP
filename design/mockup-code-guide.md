@@ -42,7 +42,7 @@ const STAGES = [
 `k` = key used in scenarios, `n` = label shown, `l` = layer code shown under the label.
 
 ### `EV`: event names for the log
-Maps stage keys to the WebSocket stage names from [Architecture.md](../Architecture.md) §7 (`causal` → `causal_check`), so the log already looks like the real stream.
+Maps stage keys to the WebSocket stage names from [Architecture.md](../.agent/project/Architecture.md) §7 (`causal` → `causal_check`), so the log already looks like the real stream.
 
 ### `V`: verdicts
 `key → {c: color class, g: glyph, t: word}`. The full table is in [design-system.md](design-system.md) §5. The color class (`ok`, `warn`, `bad`, `route`, `skip`) becomes `v-ok` etc. on nodes and plain `ok` etc. in the log.
@@ -92,7 +92,7 @@ Maps stage keys to the WebSocket stage names from [Architecture.md](../Architect
 ```
 
 **Rules for scenarios**
-- The path must be one the real engine can produce ([Architecture.md](../Architecture.md) §3). For example, `policy: block` means every later stage is `skip`.
+- The path must be one the real engine can produce ([Architecture.md](../.agent/project/Architecture.md) §3). For example, `policy: block` means every later stage is `skip`.
 - A skipped stage still needs a `note` ("Not reached." is fine).
 - Use example domains (`northwind.co`, `mail-backup.net`) and never real people's addresses.
 
@@ -166,7 +166,7 @@ Only scenarios with an `off` field appear in the Attack Lab picker (`attacks = S
 
 ## 6. Security in the mockup
 
-Even with sample data, the mockup follows the untrusted-content rule ([Rules.md](../Rules.md) §5), so the React port starts from the right habits:
+Even with sample data, the mockup follows the untrusted-content rule ([Rules.md](../.agent/project/Rules.md) §5), so the React port starts from the right habits:
 
 - Email and log content is inserted with `textContent` / `createTextNode`, never `innerHTML`.
 - Where `innerHTML` is used for layout, every data value passes through `esc()` first.

@@ -1,6 +1,6 @@
 # AdaptiShield — Frontend Design
 
-This folder holds the frontend design for AdaptiShield: working mockups and the specs needed to turn them into the real React app (Phase 4 in [Phase.md](../Phase.md)).
+This folder holds the frontend design for AdaptiShield: working mockups and the specs needed to turn them into the real React app (Phase 4 in [Phase.md](../.agent/project/Phase.md)).
 
 **Status:** mockups are done for every planned screen, and they are waiting for the supervisor's review.
 
@@ -53,7 +53,7 @@ These are the decisions everything else follows from. Keep them when expanding t
 2. **Every animation stands for a real event.** A stage animates only when its verdict arrives. Nothing moves just for decoration, so the motion itself explains what the system is doing. See [motion.md](motion.md).
 3. **Color means verdict, and only verdict.** Green = approved/pass, amber = flagged/sanitized and continued, red = blocked/takeover, blue = routed to the causal check, gray = skipped. The brand blue is also the "routed" color and appears nowhere else as decoration. See [design-system.md](design-system.md).
 4. **The causal check gets the most space.** It is the project's core idea, so Run A vs Run B is always shown side by side with a clear ≠ or =.
-5. **Untrusted content is quarantined and shown as plain text.** Monospace, dashed amber border, never rendered as HTML. This is a security rule ([Rules.md](../Rules.md) §5), made visible.
+5. **Untrusted content is quarantined and shown as plain text.** Monospace, dashed amber border, never rendered as HTML. This is a security rule ([Rules.md](../.agent/project/Rules.md) §5), made visible.
 6. **Readable on a projector.** Light theme by default, high contrast, large type. Dark mode is fully supported for everyday use.
 7. **Replay works without a model.** Replay uses the same event format as live mode, so the demo works even if Ollama is slow.
 
@@ -61,7 +61,7 @@ These are the decisions everything else follows from. Keep them when expanding t
 
 ## How this maps to the architecture
 
-| Mockup element | Real source (see [Architecture.md](../Architecture.md)) |
+| Mockup element | Real source (see [Architecture.md](../.agent/project/Architecture.md)) |
 | :--- | :--- |
 | Pipeline stages | The engine's stages: provenance (L1), screener (L3), policy (3A), causal check (3B), sanitizer (3C), permission and egress (L4), final decision |
 | Event stream lines | `WS /ws/episodes` stage events (Architecture §7) |

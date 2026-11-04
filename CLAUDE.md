@@ -1,5 +1,7 @@
 # Project rules for Claude
 
+Start with `.agent/README.md`. It has the project's full context and reading order.
+
 ## Git identity (hard rule)
 
 - Every commit, merge, and push is authored as **ahmadkhanraj01** (the configured

@@ -7,7 +7,7 @@ For the first FYP presentation (28 Sep 2026), the supervisor asked us to prepare
 3. The literature review
 4. Whether the dataset is actually usable
 
-Each section below answers one of them. Every published number is taken from the paper's own text. The source quotes are in `paper/external_numbers.json`.
+Each section below answers one of them. Every published number is taken from the paper's own text. Each comes from the cited source.
 
 ---
 

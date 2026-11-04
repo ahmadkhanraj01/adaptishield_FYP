@@ -3,7 +3,7 @@
 **Status:** ✅ Active — one subdirectory per phase whose numbers are quotable
 
 > Unlike `logs/` (gitignored working output), **this tree is tracked**. Rules.md §7
-> requires that *every number in the paper is regenerable by one committed command
+> requires that *every reported number is regenerable by one committed command
 > whose artifact is committed here with a run manifest*. A table that cannot be
 > regenerated cannot be claimed.
 

@@ -44,4 +44,3 @@ evaluation/kaggle/proposed_update.json
 evaluation/kaggle/epoch_metrics.csv
 evaluation/kaggle/*.log
 site/
-docs/site_src/docs/

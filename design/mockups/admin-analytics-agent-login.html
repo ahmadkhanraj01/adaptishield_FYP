@@ -348,7 +348,7 @@ function proposalDetail(p){
     parts.push(h("div", {class:"actions"}, rej, app));
   }
   return h("div", {class:"card"},
-    h("div", {class:"card-h"}, h("h2", null, "Proposal #" + p.no), h("span", {class:"meta"}, p.sample ? "sample data" : "reward from the real GRPO run")),
+    h("div", {class:"card-h"}, h("h2", null, "Proposal #" + p.no), h("span", {class:"meta"}, p.sample ? "sample data" : "reward from a real training run")),
     h("div", {class:"card-b stack"}, parts));
 }
 function decide(p, verdict){
@@ -405,7 +405,7 @@ function renderAdmin(){
 }
 
 /* ------------------------------- Analytics ------------------------------- */
-/* Real numbers: results/phase12/benchmark.json joined to red_team/data/injecagent_dh.json.
+/* Real numbers: the committed InjecAgent run under results/, joined to red_team/data/injecagent_dh.json.
    Wilson intervals from evaluation/fpr_report.py. One run per case. */
 const SETUPS = {
   undefended:{name:"No defense", cls:"--s1"},
@@ -466,7 +466,7 @@ function renderAnalytics(){
       tile("Detection, no target", "30.0%", "9 of 30, interval 16.7 to 47.9"),
       tile("False alarms, clean documents", "3.3%", "2 of 60, interval 0.9 to 11.4")));
     out.push(card("Attack success by suite", null, empty("End-to-end runs on this set are planned for Phase 5", "These detection rates come from a 60-case sample scored offline. Attack success and task completion are not measured here yet.")));
-    out.push(sourceNote("Detection: results/severity/rescore_holdout.json (baseline scorer). False alarms: results/campaign/campaign.json."));
+    out.push(sourceNote("Real results from committed runs, using the baseline scorer."));
     return out;
   }
   out.push(h("div", {class:"tiles"},
@@ -491,7 +491,7 @@ function renderAnalytics(){
       h("tbody", null, IA_ROWS.map(r => h("tr", null, h("td", null, r.type), h("td", null, r.stratum),
         h("td", {class:"num"}, r.n, r.n < 20 ? h("span", {class:"small-n"}, "small n") : null),
         [r.undefended, r.full, r.det].map(c => h("td", {class:"num"}, c[1] + "% [" + c[2] + ", " + c[3] + "]")))))))));
-  out.push(sourceNote("Real results from results/phase12/benchmark.json: one run per case, 60 cases drawn 30/30 from a 51/459 population, so rows are never pooled. Workflow continuation is not yet broken down by attack type. Spotlighting has only been run on our own attacks."));
+  out.push(sourceNote("Real results from the committed InjecAgent run: one run per case, 60 cases drawn 30/30 from a 51/459 population, so rows are never pooled. Workflow continuation is not yet broken down by attack type. Spotlighting has only been run on our own attacks."));
   return out;
 }
 const tile = (k, v, ci) => h("div", {class:"tile"}, h("span", {class:"k"}, k), h("span", {class:"v"}, v), h("span", {class:"ci"}, ci));

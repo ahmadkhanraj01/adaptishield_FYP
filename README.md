@@ -42,7 +42,7 @@ The system runs entirely on **local open-source models** through Ollama on a 4 G
 | 4 | **Live Defense Monitor** | A web dashboard that shows each stage's verdict live over WebSockets, plus replay of recorded episodes. | Planned |
 | 5 | **Admin Console & Analytics** | Review, approve or reject the adaptive component's proposed changes. Charts of detection, false-alarm and task-completion rates per attack type. | Approval logic built (`layer5/`); web console planned |
 
-See [Architecture.md](Architecture.md) for how the modules fit together and [Phase.md](Phase.md) for the build plan.
+See the project website source in [docs/](docs/) for how the system works. To preview it, run `mkdocs serve`.
 
 ## Tech stack
 
@@ -73,7 +73,7 @@ tests/                     Pytest suite (deterministic, no LLM needed)
 utils/                     Shared parsing and hashing helpers
 FYP/                       Proposal, presentations, Gantt chart, supervisor feedback
 design/                    Frontend design: animated UI mockup + design system, motion and screen specs
-docs/                      Background notes and archived material
+docs/                      Source of the project website (build with mkdocs)
 
 backend/                   Agreed API, event and database contracts; FastAPI service planned (Phase 2)
 agent/                     Scaffold; Module 1, the Protected Demo Agent, planned (Phase 3)
@@ -118,7 +118,7 @@ python -m layer5.review --list
 python -m evaluation.train_classifier
 ```
 
-Backend, frontend and Docker Compose commands will be added here as those modules are built (see [Phase.md](Phase.md)).
+Backend, frontend and Docker Compose commands will be added here as those modules are built (see [Phase.md](.agent/project/Phase.md)).
 
 ## Datasets
 
@@ -145,10 +145,10 @@ Three setups run on the same data: **no defense**, a **prompt-level defense** (S
 
 | File | Contents |
 | :--- | :--- |
-| [Architecture.md](Architecture.md) | Modules, components, request flow, API and data design |
-| [Design.md](Design.md) | Why the system is built this way |
-| [Rules.md](Rules.md) | Rules every contributor must follow |
-| [Phase.md](Phase.md) | Project phases, timeline and task checklist |
+| [Architecture.md](.agent/project/Architecture.md) | Modules, components, request flow, API and data design |
+| [Design.md](.agent/project/Design.md) | Why the system is built this way |
+| [Rules.md](.agent/project/Rules.md) | Rules every contributor must follow |
+| [Phase.md](.agent/project/Phase.md) | Project phases, timeline and task checklist |
 | [design/](design/README.md) | Frontend design: animated mockup, design system, motion spec, screen specs, React plan |
 | [FYP/](FYP/) | Proposal, presentation, Gantt chart, supervisor feedback, SRS, system design, Phase 2 plan and literature review |
 

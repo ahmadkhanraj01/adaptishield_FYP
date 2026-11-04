@@ -1,8 +1,8 @@
 # backend
 
-**Status:** contracts agreed, service not built yet (Phase 2 in [Phase.md](../Phase.md)).
+**Status:** contracts agreed, service not built yet (Phase 2 in [Phase.md](../.agent/project/Phase.md)).
 
-The FastAPI service that wraps the Defense Engine. It adds the REST API, the live WebSocket stream, login with three roles, and PostgreSQL storage. Decision logic stays in `layer*/` and `adaptishield_pipeline.py` ([Rules.md](../Rules.md) §2).
+The FastAPI service that wraps the Defense Engine. It adds the REST API, the live WebSocket stream, login with three roles, and PostgreSQL storage. Decision logic stays in `layer*/` and `adaptishield_pipeline.py` ([Rules.md](../.agent/project/Rules.md) §2).
 
 ## Contracts
 

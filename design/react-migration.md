@@ -1,6 +1,6 @@
 # From Mockup to React
 
-How to turn the v1 mockup into the real frontend (Phase 3 scaffold, Phase 4 build in [Phase.md](../Phase.md)). The mockup is the visual and behavioral reference. The React app keeps its look and motion, but gets its data from the backend instead of hard-coded scenarios.
+How to turn the v1 mockup into the real frontend (Phase 3 scaffold, Phase 4 build in [Phase.md](../.agent/project/Phase.md)). The mockup is the visual and behavioral reference. The React app keeps its look and motion, but gets its data from the backend instead of hard-coded scenarios.
 
 ---
 
@@ -155,7 +155,7 @@ export interface StageEvent {
 }
 ```
 
-The backend must send `running` events when a stage *starts* as well as when it finishes, so the spinner (M2) and the thinking dots (M9) show real work. Agree on this list with the backend in Phase 1 and keep it in [Architecture.md](../Architecture.md) §7. Note that the mockup's `causal` key becomes `causal_check` here.
+The backend must send `running` events when a stage *starts* as well as when it finishes, so the spinner (M2) and the thinking dots (M9) show real work. Agree on this list with the backend in Phase 1 and keep it in [Architecture.md](../.agent/project/Architecture.md) §7. Note that the mockup's `causal` key becomes `causal_check` here.
 
 **`injected_spans`** replaces the mockup's hand-marked `{inj: …}`: the engine reports which character ranges it flagged or stripped, and `QuarantineBox` splits the text on those ranges, still as plain text.
 
@@ -217,7 +217,7 @@ export async function replay(events: StageEvent[], speed: number, signal: AbortS
 
 ## 7. Security checklist for the frontend
 
-From [Rules.md](../Rules.md) §4–5:
+From [Rules.md](../.agent/project/Rules.md) §4–5:
 
 - [ ] Untrusted content is rendered with `{text}` in JSX, **never** `dangerouslySetInnerHTML`, and never through a Markdown renderer.
 - [ ] `QuarantineBox` splits text by `injected_spans` and renders every segment as text.

@@ -20,7 +20,7 @@ Every screen in the AdaptiShield web app: what it is for, who uses it, what is o
 
 **Job:** show, in real time, what the Defense Engine is doing with each request and why.
 **Users:** Analyst (watching), panel/supervisor (demo).
-**Data:** `WS /ws/episodes` for live events; `GET /api/episodes/{id}` for replay ([Architecture.md](../Architecture.md) §6–7).
+**Data:** `WS /ws/episodes` for live events; `GET /api/episodes/{id}` for replay ([Architecture.md](../.agent/project/Architecture.md) §6–7).
 
 ### Layout
 
@@ -66,7 +66,7 @@ Every screen in the AdaptiShield web app: what it is for, who uses it, what is o
 | Clean email: summarize | pass → pass → pass → **approve** → skip → skip → pass → pass | `approved_direct` |
 | User forwards to a colleague | pass → pass → pass → **route** → **no change** → skip → pass → pass | `approved_causal` |
 
-Any new scenario must follow a path the real engine can produce ([Architecture.md](../Architecture.md) §3).
+Any new scenario must follow a path the real engine can produce ([Architecture.md](../.agent/project/Architecture.md) §3).
 
 ### States
 
@@ -154,7 +154,7 @@ Not run yet · running (both panes animating) · done · error in one pane (show
 ## 4. Admin Console
 
 **Job:** keep a person in control of every automatic configuration change.
-**Users:** Admin only (enforced by the server, [Rules.md](../Rules.md) §3).
+**Users:** Admin only (enforced by the server, [Rules.md](../.agent/project/Rules.md) §3).
 **Data:** `GET /api/proposals`, `GET /api/proposals/{id}`, `POST /api/proposals/{id}/decision`, `GET /api/policy`.
 
 ```
@@ -203,11 +203,11 @@ Not run yet · running (both panes animating) · done · error in one pane (show
 └────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-- **No pie charts and no single overall score.** Every chart is split by attack type ([Design.md](../Design.md) §4). Headline tiles are split by whether the attack names a target, because the InjecAgent sample must never be pooled.
+- **No pie charts and no single overall score.** Every chart is split by attack type ([Design.md](../.agent/project/Design.md) §4). Headline tiles are split by whether the attack names a target, because the InjecAgent sample must never be pooled.
 - **No invented results.** The mockup uses real committed results. A setup that has not run on a dataset shows as not measured, and the trend chart stays empty until two runs exist.
 - Every rate shows its interval and `n`. Small-`n` cells are marked.
 - Setups use fixed colors that are *not* the verdict colors: three steps of one blue, ordered from no defense to full defense (`--s1`, `--s2`, `--s3`, checked with an ordinal palette validator in light and dark).
-- Weak attack types are shown, not hidden ([Rules.md](../Rules.md) §6).
+- Weak attack types are shown, not hidden ([Rules.md](../.agent/project/Rules.md) §6).
 - Charts: Recharts `BarChart` with `ErrorBar`, `LineChart`; theme-aware colors from tokens.
 - CSV export of the table.
 

@@ -23,12 +23,12 @@ rich
 pyyaml
 jsonschema
 
-# paper build only — figures, decks and the manuscript. Not imported by the
+# document builds only. Not imported by the
 # pipeline or by the test suite.
 pillow
 python-docx
 python-pptx
 
 # site build only
-mkdocs
+mkdocs<2
 mkdocs-material

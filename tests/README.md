@@ -1,9 +1,9 @@
 # tests — Automated Test Suite
 
-**Status:** ✅ **561 tests passing** (`test_contracts.py` 23, `test_grpo_kaggle.py` 33, `test_text_classifier.py` 27), ~15 s, no LLM / no network / no GPU
+**Status:** ✅ **575 tests passing** (`test_site.py` checks the website, `test_contracts.py` 23, `test_grpo_kaggle.py` 33, `test_text_classifier.py` 27), ~15 s, no LLM / no network / no GPU
 
 ```bash
-python3 -m pytest tests/ -q          # 561 passed
+python3 -m pytest tests/ -q          # 575 passed
 python3 -m pytest tests/test_layer5.py -v
 ```
 

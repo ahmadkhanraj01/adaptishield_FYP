@@ -6,7 +6,7 @@ Every animation in the AdaptiShield UI, what triggers it, and how to rebuild it 
 
 ## 1. The rule: motion = an event happened
 
-Every animation must stand for something the system actually did. In the real app, **a stage animates only when its WebSocket stage event arrives** (see [Architecture.md](../Architecture.md) §7). Nothing moves for decoration.
+Every animation must stand for something the system actually did. In the real app, **a stage animates only when its WebSocket stage event arrives** (see [Architecture.md](../.agent/project/Architecture.md) §7). Nothing moves for decoration.
 
 That gives three benefits:
 1. **The motion explains the system.** A viewer who knows nothing about prompt injection can watch the packet stop at the causal check, see the two runs disagree, and understand what happened.

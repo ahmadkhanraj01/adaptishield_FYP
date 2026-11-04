@@ -1,0 +1,3 @@
+# Leave agent working notes out of source downloads (GitHub "Download ZIP", git archive).
+.agent/research export-ignore
+.agent/research/** export-ignore
