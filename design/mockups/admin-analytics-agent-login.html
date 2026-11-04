@@ -53,6 +53,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14p
 .nav a:hover,.nav button:hover{background:var(--surface-2);color:var(--ink)}
 .nav a:focus-visible,.nav button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .nav [aria-current="page"]{background:var(--accent-soft);color:var(--accent)}
+.nav .sub-item{padding-left:38px;font-size:13px}
 .nav .num{font-family:var(--mono);font-size:11px;width:18px;height:18px;display:grid;place-items:center;border:1px solid currentColor;border-radius:5px;flex:none}
 .side-foot{margin-top:auto;font-size:12px;color:var(--muted);padding-inline:6px;display:flex;flex-direction:column;gap:6px}
 .conn{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px}
@@ -207,6 +208,7 @@ td.num,th.num{font-family:var(--mono);font-size:12px;font-variant-numeric:tabula
   .side{border-right:0;border-bottom:1px solid var(--line);padding:12px 16px;gap:10px}
   .nav{flex-direction:row;overflow-x:auto;gap:4px}
   .nav a,.nav button{white-space:nowrap}
+  .nav .sub-item{padding-left:10px}
   .side-foot{display:none}
   main{padding-inline:16px}
   .agent{grid-template-columns:minmax(0,1fr)}
@@ -271,10 +273,10 @@ const stateBar = (id, options) => h("div", {class:"preview-bar"}, h("label", {fo
     Object.entries(options).map(([v, t]) => h("option", {value:v, selected: state[id] === v ? "selected" : null}, t))));
 
 const VIEWS = {
-  monitor:  {num:"4", label:"Live Monitor", href:"live-monitor-attack-lab.html"},
-  history:  {num:"4", label:"Episode history", roles:["tester","analyst","admin"]},
-  lab:      {num:"2", label:"Attack Lab", href:"live-monitor-attack-lab.html#lab", roles:["tester","admin"]},
   agent:    {num:"1", label:"Demo Agent", roles:["tester","admin"]},
+  lab:      {num:"2", label:"Attack Lab", href:"live-monitor-attack-lab.html#lab", roles:["tester","admin"]},
+  monitor:  {num:"4", label:"Live Monitor", href:"live-monitor-attack-lab.html"},
+  history:  {label:"Episode history", sub:true},
   admin:    {num:"5", label:"Admin Console", roles:["admin"]},
   analytics:{num:"5", label:"Analytics", roles:["analyst","admin"]},
 };
@@ -648,9 +650,9 @@ function topbar(title, sub, ...controls){
 function renderNav(){
   const nav = document.getElementById("nav");
   nav.replaceChildren(...Object.entries(VIEWS).filter(([, v]) => !v.roles || v.roles.includes(state.role)).map(([k, v]) => {
-    const inner = [h("span", {class:"num"}, v.num), v.label];
+    const inner = [v.num ? h("span", {class:"num"}, v.num) : null, v.label];
     return v.href ? h("a", {href:v.href}, inner)
-      : h("button", {"aria-current": state.view === k ? "page" : null, onclick:() => { state.view = k; history.replaceState(null, "", "#" + k); render(); }}, inner);
+      : h("button", {class:v.sub ? "sub-item" : null, "aria-current": state.view === k ? "page" : null, onclick:() => { state.view = k; history.replaceState(null, "", "#" + k); render(); }}, inner);
   }));
 }
 function render(){

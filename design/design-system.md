@@ -131,7 +131,7 @@ In the React app, self-host these with `@fontsource/ibm-plex-sans` etc. so the a
 | ≤ 760px | Sidebar becomes a horizontal, scrollable nav bar at the top; footer status hidden; gutter 16px; Run A / ≠ / Run B stack vertically; stats become 2 columns |
 | Any width | The pipeline track keeps a 700px minimum and scrolls sideways inside its own container. The page itself never scrolls sideways. |
 
-The nav numbers (4, 2, 1, 5, 5) are the **module numbers** from the proposal, so the sidebar itself shows the five-module architecture.
+The nav numbers (1, 2, 4, 5, 5) are the **module numbers** from the proposal, in ascending order. Episode history is a sub-item of Live Monitor, so it has no number. Module 3, the Defense Engine, has no page of its own. Keep this order on every screen.
 
 ---
 
