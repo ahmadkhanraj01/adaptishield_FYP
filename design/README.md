@@ -2,21 +2,22 @@
 
 This folder holds the frontend design for AdaptiShield: working mockups and the specs needed to turn them into the real React app (Phase 4 in [Phase.md](../Phase.md)).
 
-**Status:** v1 mockup done for the **Live Defense Monitor** (Module 4) and the **Attack Lab** (Module 2). The Demo Agent, Admin Console, Analytics and Login screens are specified in [screens.md](screens.md) but not yet mocked up.
+**Status:** mockups are done for every planned screen, and they are waiting for the supervisor's review.
 
 ---
 
 ## Open the mockup
 
-The mockup is one self-contained HTML file. There is no build step, and it needs no server or backend.
+There are two self-contained HTML files, linked from each other's sidebars. There is no build step, and they need no server or backend.
 
 ```bash
 # Linux
 xdg-open design/mockups/live-monitor-attack-lab.html
-# or drag the file into any browser
+xdg-open design/mockups/admin-analytics-agent-login.html
+# or drag a file into any browser
 ```
 
-It needs an internet connection only for Google Fonts (IBM Plex). Without one, it falls back to system fonts and still works.
+They need an internet connection only for Google Fonts (IBM Plex). Without one, it falls back to system fonts and still works.
 
 **What to try:**
 1. The Monitor plays an injected-email episode automatically about a second after loading.
@@ -25,6 +26,7 @@ It needs an internet connection only for Google Fonts (IBM Plex). Without one, i
 4. After a run, click any stage in the pipeline to read its explanation again.
 5. Open **Attack Lab** in the sidebar to see the same attack run with protection off and on.
 6. Switch your OS to dark mode. The whole palette follows.
+7. In the second file, write a reason to enable the Admin Console's buttons, change **Preview as** to see each role's navigation, and use **Preview state** to see empty and error states. Plant `<script>` text in a Demo Agent email to see it stay as plain text.
 
 ---
 
@@ -32,7 +34,9 @@ It needs an internet connection only for Google Fonts (IBM Plex). Without one, i
 
 | File | What it covers |
 | :--- | :--- |
-| [mockups/live-monitor-attack-lab.html](mockups/live-monitor-attack-lab.html) | The working mockup (HTML + CSS + vanilla JS, one file) |
+| [mockups/live-monitor-attack-lab.html](mockups/live-monitor-attack-lab.html) | Live Monitor and Attack Lab mockup (HTML + CSS + vanilla JS, one file) |
+| [mockups/admin-analytics-agent-login.html](mockups/admin-analytics-agent-login.html) | Admin Console, Analytics, Demo Agent, Episode history and Login mockup. Analytics uses real committed results; other data is labeled sample |
+| [diagrams/](diagrams/) | Architecture, sequence, use-case and ER diagrams, with the script that draws them |
 | [design-system.md](design-system.md) | Colors (light and dark), verdict colors, typography, spacing, radii, shadows, the component catalogue |
 | [motion.md](motion.md) | Every animation: what triggers it, duration, easing, reduced-motion behavior, and how to rebuild it in Framer Motion |
 | [screens.md](screens.md) | Screen-by-screen spec: the two mocked-up screens in detail, plus wireframes and requirements for the remaining screens |
@@ -73,7 +77,7 @@ These are the decisions everything else follows from. Keep them when expanding t
 | Step | Deliverable | Phase |
 | :--- | :--- | :--- |
 | ✅ v1 | Live Monitor + Attack Lab mockup | 1 |
-| ⬜ v2 | Admin Console + Analytics mockup in the same style | 1 |
-| ⬜ v3 | Demo Agent inbox + Login mockup | 1 |
+| ✅ v2 | Admin Console + Analytics mockup in the same style | 1 |
+| ✅ v2 | Demo Agent inbox + Login mockup, plus Episode history | 1 |
 | ⬜ | Supervisor review of all screens | 1 |
 | ⬜ | Port to React (see [react-migration.md](react-migration.md)) | 3–4 |

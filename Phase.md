@@ -10,7 +10,7 @@
 
 | Phase | Name | Period | Duration | Status |
 | :-: | :--- | :--- | :-: | :-: |
-| 0 | Proposal & First Presentation | Sep 2026 | — | 🟡 |
+| 0 | Proposal & First Presentation | Sep 2026 | — | ✅ |
 | 1 | Requirements & System Design | 18 Sep – 31 Oct 2026 | 44 days | 🟡 |
 | 2 | Defense Engine & Backend | 1 Nov – 31 Dec 2026 | 61 days | ⬜ |
 | 3 | Protected Demo Agent & Attack Lab | 1 Jan – 28 Feb 2027 | 59 days | ⬜ |
@@ -28,11 +28,11 @@ Phase 5                                                    ████
 Phase 6                                                        ███
 ```
 
-**Starting point.** The Defense Engine's detection core already exists and is tested: `layer0`–`layer5`, `adaptishield_pipeline.py` and 501 passing tests. The FYP work turns it into a complete system: a service, a demo agent, an attack lab, a React web app, a database and a deployment. The engine's decision logic is reused, not rewritten.
+**Starting point.** The Defense Engine's detection core already exists and is tested: `layer0`–`layer5`, `adaptishield_pipeline.py` and a passing test suite. The FYP work turns it into a complete system: a service, a demo agent, an attack lab, a React web app, a database and a deployment. The engine's decision logic is reused, not rewritten.
 
 ---
 
-## Phase 0 — Proposal & First Presentation 🟡
+## Phase 0 — Proposal & First Presentation ✅
 
 **Goal:** get the project approved and presented.
 
@@ -40,8 +40,8 @@ Phase 6                                                        ███
 - [x] Gantt chart (`FYP/gantt_chart.png`)
 - [x] Supervisor's four points prepared: dataset, research questions, literature review, dataset feasibility (`FYP/Supervisor_Feedback.md`)
 - [x] First presentation slides and speaker notes (`FYP/AdaptiShield_FirstPresentation.pptx`, `FYP/Presentation_Notes.md`)
-- [ ] First presentation delivered (**Mon 28 Sep 2026, 9:00 a.m., Chairman's office**)
-- [ ] Panel feedback recorded in `FYP/` and applied to this plan
+- [x] First presentation delivered (**Mon 28 Sep 2026, 9:00 a.m., Chairman's office**)
+- [x] Phase closed by the team on 4 Nov 2026. No written panel feedback is recorded in `FYP/`; add it there if any changes this plan
 
 ---
 
@@ -50,28 +50,28 @@ Phase 6                                                        ███
 **18 Sep – 31 Oct 2026.** **Goal:** freeze *what* is being built before building it.
 
 ### 1.1 Requirements
-- [ ] Software Requirements Specification (SRS): functional and non-functional requirements for all 5 modules
-- [ ] User roles: **Tester** (Attack Lab), **Analyst** (Monitor, Analytics), **Admin** (approvals)
-- [ ] Use-case diagram and main use cases (run attack, watch live verdicts, approve proposal, view analytics, replay episode)
-- [ ] Acceptance criteria per module
+- [x] Software Requirements Specification (SRS): functional and non-functional requirements for all 5 modules (`FYP/AdaptiShield_SRS.docx`)
+- [x] User roles: **Tester** (Attack Lab), **Analyst** (Monitor, Analytics), **Admin** (approvals)
+- [x] Use-case diagram and main use cases (run attack, watch live verdicts, approve proposal, view analytics, replay episode)
+- [x] Acceptance criteria per module
 
 ### 1.2 System design
-- [ ] High-level architecture diagram updated for the 5 modules (see [Architecture.md](Architecture.md) §1)
-- [ ] Sequence diagram: one injected email from agent → engine → tools → dashboard
-- [ ] **REST API contract** (OpenAPI draft) for every endpoint in [Architecture.md](Architecture.md) §6
-- [ ] **WebSocket event schema** for per-stage verdicts ([Architecture.md](Architecture.md) §7)
-- [ ] **Database schema** (ER diagram) for episodes, stage verdicts, attacks, proposals, approvals, users ([Architecture.md](Architecture.md) §8)
+- [x] High-level architecture diagram updated for the 5 modules (`design/diagrams/architecture.png`, `FYP/AdaptiShield_System_Design.docx`)
+- [x] Sequence diagram: one injected email from agent → engine → tools → dashboard (`design/diagrams/sequence.png`)
+- [x] **REST API contract** (OpenAPI draft) for every endpoint in [Architecture.md](Architecture.md) §6 (`backend/contracts/openapi.yaml`)
+- [x] **WebSocket event schema** for per-stage verdicts (`backend/contracts/stage_event.schema.json`)
+- [x] **Database schema** (ER diagram) for episodes, stage verdicts, attacks, proposals, approvals, users (`backend/contracts/schema.sql`, `design/diagrams/er.png`)
 - [x] Animated UI mockup: Live Monitor + Attack Lab ([design/](design/README.md))
 - [x] Design system, motion spec and screen specs ([design/](design/README.md))
-- [ ] Mockups for the remaining screens: Admin Console, Analytics, Demo Agent, Login ([design/screens.md](design/screens.md))
+- [x] Mockups for the remaining screens: Admin Console, Analytics, Demo Agent, Login (`design/mockups/admin-analytics-agent-login.html`)
 
 ### 1.3 Project setup
-- [ ] Repository structure created: `backend/`, `agent/`, `attack_lab/`, `frontend/`
-- [ ] Branching and pull-request workflow agreed ([Rules.md](Rules.md) §8)
-- [ ] GitHub Actions CI running `pytest` on every push
-- [ ] Task split among the three team members
+- [x] Repository structure created: `backend/`, `agent/`, `attack_lab/`, `frontend/`
+- [ ] Branching and pull-request workflow agreed ([Rules.md](Rules.md) §8). Needs the team to confirm
+- [ ] GitHub Actions CI running `pytest` on every push. Workflow written (`.github/workflows/ci.yml`); tick after its first run on GitHub
+- [ ] Task split among the three team members. Suggested workstreams are in the Phase 2 design document
 
-**Deliverable:** SRS + design document, reviewed by the supervisor.
+**Deliverable:** SRS + design document, reviewed by the supervisor. Both are written and waiting for review (`FYP/AdaptiShield_SRS.docx`, `FYP/AdaptiShield_System_Design.docx`).
 
 ---
 

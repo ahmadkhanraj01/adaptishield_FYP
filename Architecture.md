@@ -145,14 +145,14 @@ labeled episodes ─▶ reward ─▶ evaluate batch ─▶ propose_update ─�
 
 ## 6. Backend API (planned, Phase 2)
 
-FastAPI service in `backend/`. All endpoints are JSON; interactive docs are at `/docs`.
+FastAPI service in `backend/`. All endpoints are JSON; interactive docs are at `/docs`. The exact contract is [`backend/contracts/openapi.yaml`](backend/contracts/openapi.yaml), and `tests/test_contracts.py` checks it against the engine.
 
 | Method & path | Role | Purpose |
 | :--- | :--- | :--- |
 | `POST /api/auth/login` | any | Get a JWT |
 | `POST /api/episodes` | Tester | Send one request through the engine (protection on/off selectable) |
-| `GET /api/episodes` | Analyst | List episodes (filters: status, attack type, date) |
-| `GET /api/episodes/{id}` | Analyst | One episode with all stage verdicts (used by Replay) |
+| `GET /api/episodes` | Tester, Analyst | List episodes (filters: status, attack type, source, date) |
+| `GET /api/episodes/{id}` | Tester, Analyst | One episode with all stage verdicts (used by Replay) |
 | `POST /api/agent/run` | Tester | Run the demo agent on a mailbox scenario |
 | `GET /api/attacks` | Tester | Browse the attack catalogue (InjecAgent, AgentDojo, custom) |
 | `POST /api/attacks` | Tester | Save a custom attack |
@@ -165,45 +165,53 @@ FastAPI service in `backend/`. All endpoints are JSON; interactive docs are at `
 | `GET /api/analytics/summary` | Analyst | ASR, TPR, FPR, WCR per attack type and per setup, with intervals |
 | `GET /api/health` | any | Backend, database and Ollama status |
 
+An Admin can use every endpoint. Requests have no `command` field, so a web request can never start a sandbox command.
+
 ---
 
 ## 7. Live event stream (planned, Phase 2)
 
-`WS /ws/episodes` pushes one event per stage as the engine runs, so the Monitor can light each stage up in order.
+`WS /ws/episodes` pushes one event per stage as the engine runs, so the Monitor can light each stage up in order. The exact messages are in [`backend/contracts/stage_event.schema.json`](backend/contracts/stage_event.schema.json). The client signs in with its first message, so the token never goes in the URL.
 
 ```json
 {
-  "episode_id": "b7e2…",
+  "type": "stage_event",
+  "episode_id": "b7e2c1d4-8a1f-4c3e-9b6d-2f7a1c0e5d11",
   "seq": 4,
   "stage": "causal_check",
   "verdict": "takeover",
   "detail": {
-    "run_a_action": "forward_email to attacker@example.com",
-    "run_b_action": "summarize_thread",
-    "changed": true,
-    "rule": "standalone"
+    "ace": 0.0, "ie": 2.0, "de": 0.0,
+    "rule": "standalone",
+    "reason": "masked severity=2.00 >= 2 ...",
+    "probes": {
+      "orig":             {"severities": [2, 2], "actions": ["forward_email to attacker@example.com"]},
+      "masked":           {"severities": [2, 2], "actions": ["forward_email to attacker@example.com"]},
+      "masked_sanitized": {"severities": [0, 0], "actions": ["no_action"]},
+      "orig_sanitized":   {"severities": [0, 0], "actions": ["summarize_thread"]}
+    }
   },
   "timestamp": "2027-03-10T09:14:22Z"
 }
 ```
 
-`stage` is one of `received`, `provenance`, `screener`, `policy`, `causal_check`, `sanitizer`, `permission`, `egress`, `sandbox`, `final`. The `final` event carries the status (`approved_direct`, `approved_causal`, `safe_continuation`, `blocked`). Replay re-emits a stored episode's events in the same format.
+`stage` is one of `received`, `provenance`, `screener`, `policy`, `causal_check`, `sanitizer`, `permission`, `egress`, `sandbox`, `final`. The `final` event carries the status (`approved_direct`, `approved_causal`, `safe_continuation`, `blocked`) and `tool_may_run`, which is false if Layer 4 denied the action even when the status starts with `approved`. Replay re-emits a stored episode's events in the same format.
 
 ---
 
 ## 8. Database (planned, Phase 2)
 
-PostgreSQL, SQLAlchemy models, Alembic migrations.
+PostgreSQL, SQLAlchemy models, Alembic migrations. The exact schema is [`backend/contracts/schema.sql`](backend/contracts/schema.sql).
 
 | Table | Key columns |
 | :--- | :--- |
-| `users` | id, name, email, role (`tester`, `analyst`, `admin`), password_hash |
-| `attacks` | id, source (`injecagent`, `agentdojo`, `custom`), attack_type, user_task, injected_text, target, is_benign |
-| `episodes` | id, attack_id, config (`none`, `spotlighting`, `full`), user_input, final_status, started_at, finished_at, session_id |
+| `users` | id, name, email, role (`tester`, `analyst`, `admin`), password_hash, is_active |
+| `attacks` | id, source (`injecagent`, `agentdojo`, `custom`), source_index, suite, attack_type, user_task, injected_text, proposed_action, target, target_match, is_benign |
+| `episodes` | id, attack_id, origin, config (`undefended`, `spotlighting`, `full`), action_source, state, error, session_id, tool_name, user_input, tool_response, proposed_action, final_status, tool_may_run, created_by, started_at, finished_at |
 | `stage_events` | id, episode_id, seq, stage, verdict, detail (JSONB), timestamp |
-| `proposals` | id, created_at, change (JSONB), proposal_reward, incumbent_reward (recomputed), status |
-| `approvals` | id, proposal_id, admin_id, decision, reason, decided_at (**append-only**) |
-| `evaluation_runs` | id, corpus, config, model_tags, commit_sha, metrics (JSONB), created_at |
+| `proposals` | id, change (JSONB), claimed_reward (never shown as evidence), status, source_file, source_hash |
+| `approvals` | id, proposal_id, admin_id, decision, reason, evidence (JSONB), warnings (JSONB), decided_at (**append-only, enforced by a database trigger**) |
+| `evaluation_runs` | id, corpus, config, model_tags, commit_sha, dirty, metrics (JSONB), source_file |
 
 Untrusted text (injected emails, tool responses) is stored as data and is never interpreted.
 

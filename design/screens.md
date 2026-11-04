@@ -1,16 +1,16 @@
 # AdaptiShield — Screen Specs
 
-Every screen in the AdaptiShield web app: what it is for, who uses it, what is on it, which data it needs, and its states. Screens 1 and 2 are built in the v1 mockup ([`mockups/live-monitor-attack-lab.html`](mockups/live-monitor-attack-lab.html)). Screens 3–6 are specified here and still need mockups.
+Every screen in the AdaptiShield web app: what it is for, who uses it, what is on it, which data it needs, and its states. Screens 1 and 2 are in the v1 mockup ([`mockups/live-monitor-attack-lab.html`](mockups/live-monitor-attack-lab.html)). The other screens are in the v2 mockup ([`mockups/admin-analytics-agent-login.html`](mockups/admin-analytics-agent-login.html)).
 
 | # | Screen | Module | Main role | Mockup |
 | :-: | :--- | :-: | :--- | :-: |
 | 1 | [Live Monitor](#1-live-monitor) | 4 | Analyst | ✅ v1 |
 | 2 | [Attack Lab](#2-attack-lab) | 2 | Tester | ✅ v1 |
-| 3 | [Demo Agent](#3-demo-agent) | 1 | Tester | ⬜ |
-| 4 | [Admin Console](#4-admin-console) | 5 | Admin | ⬜ |
-| 5 | [Analytics](#5-analytics) | 5 | Analyst | ⬜ |
-| 6 | [Login](#6-login) | — | all | ⬜ |
-| — | [Episode list](#7-episode-list-history) (part of Monitor) | 4 | Analyst | ⬜ |
+| 3 | [Demo Agent](#3-demo-agent) | 1 | Tester | ✅ v2 |
+| 4 | [Admin Console](#4-admin-console) | 5 | Admin | ✅ v2 |
+| 5 | [Analytics](#5-analytics) | 5 | Analyst | ✅ v2 |
+| 6 | [Login](#6-login) | — | all | ✅ v2 |
+| — | [Episode list](#7-episode-list-history) (part of Monitor) | 4 | Analyst | ✅ v2 |
 
 **Shared frame (all screens except Login):** left sidebar with the brand, the five modules in nav (each with its module number), and connection status at the bottom (WebSocket, Ollama model). On phones the sidebar becomes a top bar. See [design-system.md](design-system.md) §4.
 
@@ -176,7 +176,7 @@ Not run yet · running (both panes animating) · done · error in one pane (show
 ```
 
 - **Evidence first.** Show the server's recomputed reward for current vs proposed. If the proposal is worse, show a clear amber warning. The proposal's own claimed numbers are never shown as the evidence.
-- **Per-attack-type effect**: how detection and false alarms would change for each type.
+- **Effect on the labeled episodes**: attacks missed, false alarms and tasks lost, current vs proposed. `layer5/governance.py` recomputes overall counts today, so a per-attack-type breakdown would be new work.
 - **Reason is required** for both approve and reject; buttons stay disabled until it is filled in.
 - **Confirmation step** in the page (not a browser dialog): "Apply ie_threshold 0.5 to the live engine?" with Cancel / Apply.
 - **History** is read-only and append-only: who, when, decision, reason.
@@ -203,9 +203,10 @@ Not run yet · running (both panes animating) · done · error in one pane (show
 └────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-- **No pie charts and no single overall score.** Every chart is split by attack type ([Design.md](../Design.md) §4).
+- **No pie charts and no single overall score.** Every chart is split by attack type ([Design.md](../Design.md) §4). Headline tiles are split by whether the attack names a target, because the InjecAgent sample must never be pooled.
+- **No invented results.** The mockup uses real committed results. A setup that has not run on a dataset shows as not measured, and the trend chart stays empty until two runs exist.
 - Every rate shows its interval and `n`. Small-`n` cells are marked.
-- Setups use fixed colors that are *not* the verdict colors: pick three neutrals/blues for None / Spotlighting / AdaptiShield so they don't read as pass/fail.
+- Setups use fixed colors that are *not* the verdict colors: three steps of one blue, ordered from no defense to full defense (`--s1`, `--s2`, `--s3`, checked with an ordinal palette validator in light and dark).
 - Weak attack types are shown, not hidden ([Rules.md](../Rules.md) §6).
 - Charts: Recharts `BarChart` with `ErrorBar`, `LineChart`; theme-aware colors from tokens.
 - CSV export of the table.
@@ -239,10 +240,8 @@ Filters: status, attack type, source, date range. Clicking a row opens it in the
 
 ---
 
-## 8. Next mockups to build
+## 8. Mockup status
 
-1. **Admin Console + Analytics** (v2), in the same file or a second HTML file in `mockups/`, reusing the tokens and components.
-2. **Demo Agent + Login** (v3).
-3. Error and empty states for all screens.
+All planned screens now have mockups, including empty and error states for the v2 screens (use the "Preview state" control). Next is the supervisor's review, then the React port. The Live Monitor's disconnected, Ollama-down and episode-error states are still specified above without a mockup.
 
-See [mockup-code-guide.md](mockup-code-guide.md) §5 for how to add a page to the mockup.
+See [mockup-code-guide.md](mockup-code-guide.md) §7 for how to add a page to the mockup.

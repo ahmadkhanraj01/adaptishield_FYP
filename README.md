@@ -75,10 +75,10 @@ FYP/                       Proposal, presentations, Gantt chart, supervisor feed
 design/                    Frontend design: animated UI mockup + design system, motion and screen specs
 docs/                      Background notes and archived material
 
-backend/                   (planned) FastAPI service, WebSocket stream, PostgreSQL models
-agent/                     (planned) Module 1, the Protected Demo Agent
-attack_lab/                (planned) Module 2, attack scenarios and on/off comparison
-frontend/                  (planned) React app: Monitor, Admin Console, Analytics, Attack Lab UI
+backend/                   Agreed API, event and database contracts; FastAPI service planned (Phase 2)
+agent/                     Scaffold; Module 1, the Protected Demo Agent, planned (Phase 3)
+attack_lab/                Scaffold; Module 2, attack scenarios and on/off comparison, planned (Phase 3)
+frontend/                  Scaffold; React app planned (Phases 3 and 4)
 ```
 
 ## Getting started
@@ -150,7 +150,7 @@ Three setups run on the same data: **no defense**, a **prompt-level defense** (S
 | [Rules.md](Rules.md) | Rules every contributor must follow |
 | [Phase.md](Phase.md) | Project phases, timeline and task checklist |
 | [design/](design/README.md) | Frontend design: animated mockup, design system, motion spec, screen specs, React plan |
-| [FYP/](FYP/) | Proposal, presentation, Gantt chart and supervisor feedback |
+| [FYP/](FYP/) | Proposal, presentation, Gantt chart, supervisor feedback, SRS, system design, Phase 2 plan and literature review |
 
 ## Timeline
 

@@ -1,0 +1,688 @@
+openapi: 3.1.0
+info:
+  title: AdaptiShield API
+  version: 0.1.0-draft
+  description: |
+    Design contract for the AdaptiShield backend. It covers every endpoint in
+    Architecture.md section 6. `x-phase` says which build phase delivers an
+    endpoint and `x-roles` says which roles the server allows.
+
+    The live stream is `WS /ws/episodes`. OpenAPI cannot describe WebSockets, so
+    its messages are defined in `stage_event.schema.json`.
+
+    Fields such as `user_input`, `tool_response`, `content` and stage event
+    `detail` can hold attacker-written text. Clients must display them as plain
+    text only.
+servers:
+  - url: http://127.0.0.1:8000
+security:
+  - bearerAuth: []
+tags:
+  - name: Auth
+  - name: Episodes
+  - name: Attacks
+  - name: Attack Lab
+  - name: Demo Agent
+  - name: Proposals
+  - name: Policy
+  - name: Analytics
+  - name: Health
+paths:
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      operationId: login
+      summary: Exchange email and password for a JWT
+      security: []
+      x-phase: 2
+      x-roles: [public]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Signed in
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/Invalid' }
+        '429': { $ref: '#/components/responses/TooMany' }
+  /api/episodes:
+    post:
+      tags: [Episodes]
+      operationId: createEpisode
+      summary: Queue one request for the Defense Engine
+      x-phase: 2
+      x-roles: [tester, admin]
+      parameters:
+        - name: wait
+          in: query
+          description: Hold the response until the job ends, up to 120 seconds.
+          schema: { type: boolean, default: false }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EpisodeCreate' }
+      responses:
+        '200':
+          description: Finished within the wait time (only with `wait=true`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Episode' }
+        '202':
+          description: Queued
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EpisodeAccepted' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Invalid' }
+        '429': { $ref: '#/components/responses/TooMany' }
+    get:
+      tags: [Episodes]
+      operationId: listEpisodes
+      summary: List episodes
+      x-phase: 2
+      x-roles: [tester, analyst, admin]
+      parameters:
+        - { name: final_status, in: query, schema: { $ref: '#/components/schemas/FinalStatus' } }
+        - { name: source, in: query, schema: { $ref: '#/components/schemas/AttackSource' } }
+        - { name: attack_type, in: query, schema: { type: string } }
+        - { name: origin, in: query, schema: { $ref: '#/components/schemas/Origin' } }
+        - { name: from, in: query, schema: { type: string, format: date-time } }
+        - { name: to, in: query, schema: { type: string, format: date-time } }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Offset' }
+      responses:
+        '200':
+          description: One page of episodes
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, total]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/EpisodeSummary' }
+                  total: { type: integer, minimum: 0 }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/episodes/{id}:
+    get:
+      tags: [Episodes]
+      operationId: getEpisode
+      summary: One episode with all its stage events, used by Replay
+      x-phase: 2
+      x-roles: [tester, analyst, admin]
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+      responses:
+        '200':
+          description: The episode
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Episode' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/attacks:
+    get:
+      tags: [Attacks]
+      operationId: listAttacks
+      summary: Browse the attack catalogue
+      x-phase: 2
+      x-roles: [tester, admin]
+      parameters:
+        - { name: source, in: query, schema: { $ref: '#/components/schemas/AttackSource' } }
+        - { name: attack_type, in: query, schema: { type: string } }
+        - { name: suite, in: query, schema: { type: string } }
+        - { name: target_match, in: query, schema: { type: boolean } }
+        - { name: q, in: query, description: Text search, schema: { type: string, maxLength: 200 } }
+        - { $ref: '#/components/parameters/Limit' }
+        - { $ref: '#/components/parameters/Offset' }
+      responses:
+        '200':
+          description: One page of attacks
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, total]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Attack' }
+                  total: { type: integer, minimum: 0 }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Attacks]
+      operationId: createAttack
+      summary: Save a custom attack
+      x-phase: 3
+      x-roles: [tester, admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AttackCreate' }
+      responses:
+        '201':
+          description: Saved
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Attack' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Invalid' }
+  /api/agent/run:
+    post:
+      tags: [Demo Agent]
+      operationId: runAgent
+      summary: Run the demo agent on a mailbox scenario
+      x-phase: 3
+      x-roles: [tester, admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AgentRunRequest' }
+      responses:
+        '202':
+          description: Queued
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EpisodeAccepted' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/Invalid' }
+        '429': { $ref: '#/components/responses/TooMany' }
+  /api/attack-lab/compare:
+    post:
+      tags: [Attack Lab]
+      operationId: compareAttack
+      summary: Run one attack with protection off and on
+      x-phase: 3
+      x-roles: [tester, admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [attack_id]
+              properties:
+                attack_id: { type: string, format: uuid }
+      responses:
+        '202':
+          description: Both runs queued
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [off_episode_id, on_episode_id]
+                properties:
+                  off_episode_id: { type: string, format: uuid }
+                  on_episode_id: { type: string, format: uuid }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooMany' }
+  /api/attack-lab/batch:
+    post:
+      tags: [Attack Lab]
+      operationId: startBatch
+      summary: Run every attack of one type, with progress over the WebSocket
+      x-phase: 3
+      x-roles: [tester, admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [source, configs]
+              properties:
+                source: { $ref: '#/components/schemas/AttackSource' }
+                attack_type: { type: string }
+                suite: { type: string }
+                configs:
+                  type: array
+                  minItems: 1
+                  uniqueItems: true
+                  items: { $ref: '#/components/schemas/Config' }
+      responses:
+        '202':
+          description: Batch queued
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [batch_id, total]
+                properties:
+                  batch_id: { type: string, format: uuid }
+                  total: { type: integer, minimum: 0 }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Invalid' }
+  /api/proposals:
+    get:
+      tags: [Proposals]
+      operationId: listProposals
+      summary: Pending and past configuration proposals
+      x-phase: 2
+      x-roles: [admin]
+      parameters:
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/ProposalStatus' } }
+      responses:
+        '200':
+          description: Proposals, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ProposalSummary' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/proposals/{id}:
+    get:
+      tags: [Proposals]
+      operationId: getProposal
+      summary: One proposal with evidence recomputed by the server
+      x-phase: 2
+      x-roles: [admin]
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+      responses:
+        '200':
+          description: The proposal and its recomputed evidence
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProposalDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/proposals/{id}/decision:
+    post:
+      tags: [Proposals]
+      operationId: decideProposal
+      summary: Approve or reject a proposal, with a required reason
+      x-phase: 2
+      x-roles: [admin]
+      parameters:
+        - { $ref: '#/components/parameters/Id' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [decision, reason]
+              properties:
+                decision: { type: string, enum: [approved, rejected] }
+                reason: { type: string, minLength: 1, maxLength: 2000 }
+      responses:
+        '201':
+          description: Decision recorded
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Approval' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: This proposal has already been decided
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '422': { $ref: '#/components/responses/Invalid' }
+  /api/policy:
+    get:
+      tags: [Policy]
+      operationId: getPolicy
+      summary: Current blocked patterns, high-impact tools and thresholds
+      x-phase: 2
+      x-roles: [analyst, admin]
+      responses:
+        '200':
+          description: The live policy
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Policy' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/analytics/summary:
+    get:
+      tags: [Analytics]
+      operationId: analyticsSummary
+      summary: Rates per source, setup, attack type and target stratum
+      description: Sources are never pooled. A rate with n = 0 is null, not zero.
+      x-phase: 2
+      x-roles: [analyst, admin]
+      parameters:
+        - { name: source, in: query, schema: { $ref: '#/components/schemas/AttackSource' } }
+        - { name: config, in: query, schema: { $ref: '#/components/schemas/Config' } }
+      responses:
+        '200':
+          description: One row per group
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [rows]
+                properties:
+                  rows:
+                    type: array
+                    items: { $ref: '#/components/schemas/AnalyticsRow' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/health:
+    get:
+      tags: [Health]
+      operationId: health
+      summary: Backend, database and Ollama status
+      security: []
+      x-phase: 2
+      x-roles: [public]
+      responses:
+        '200':
+          description: Status of each dependency. No internal detail.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [backend, database, ollama]
+                properties:
+                  backend: { type: string, enum: [ok] }
+                  database: { $ref: '#/components/schemas/Dependency' }
+                  ollama: { $ref: '#/components/schemas/Dependency' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+    Offset:
+      name: offset
+      in: query
+      schema: { type: integer, minimum: 0, default: 0 }
+  responses:
+    Unauthorized:
+      description: Missing or expired token, or wrong email or password
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Signed in, but this role is not allowed
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Invalid:
+      description: The request failed validation
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    TooMany:
+      description: The queue is full, or there were too many login attempts
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message:
+              type: string
+              description: Never repeats submitted content.
+    Dependency:
+      type: string
+      enum: [ok, unavailable]
+    Role:
+      type: string
+      enum: [tester, analyst, admin]
+    Config:
+      type: string
+      enum: [undefended, spotlighting, full]
+      description: A PipelineConfig method. All three share one code path. Spotlighting uses its default datamarking variant.
+    ActionSource:
+      type: string
+      enum: [supplied, derived]
+      description: ASR means different things in these two modes, so they are never combined.
+    Origin:
+      type: string
+      enum: [api, demo_agent, attack_lab, batch]
+    AttackSource:
+      type: string
+      enum: [injecagent, agentdojo, custom]
+    FinalStatus:
+      type: string
+      enum: [approved_direct, approved_causal, safe_continuation, blocked]
+    EpisodeState:
+      type: string
+      enum: [queued, running, completed, failed]
+    ProposalStatus:
+      type: string
+      enum: [pending, approved, rejected]
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 1, maxLength: 256 }
+    LoginResponse:
+      type: object
+      required: [access_token, token_type, expires_in, role]
+      properties:
+        access_token: { type: string }
+        token_type: { type: string, enum: [bearer] }
+        expires_in: { type: integer, description: Seconds until the token expires }
+        role: { $ref: '#/components/schemas/Role' }
+    EpisodeCreate:
+      type: object
+      additionalProperties: false
+      description: There is deliberately no command field. A web request can never start a sandbox command.
+      required: [user_input, tool_response, tool_name, config]
+      properties:
+        user_input: { type: string, minLength: 1, maxLength: 10000 }
+        tool_response: { type: string, maxLength: 100000 }
+        tool_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: The policy check reads this name to decide if the causal check must run, so the Demo Agent sends the tool it proposes to run.
+        proposed_action:
+          type: string
+          maxLength: 2000
+          description: Required unless config is spotlighting, where the agent chooses the action and this is ignored.
+        server_name: { type: string, maxLength: 200 }
+        destination_url: { type: string, maxLength: 2000 }
+        session_id:
+          type: string
+          maxLength: 200
+          description: Defaults to the episode ID, so that unrelated requests never share drift history.
+        attack_id: { type: string, format: uuid }
+        config: { $ref: '#/components/schemas/Config' }
+    EpisodeAccepted:
+      type: object
+      required: [episode_id, state]
+      properties:
+        episode_id: { type: string, format: uuid }
+        state: { $ref: '#/components/schemas/EpisodeState' }
+    EpisodeSummary:
+      type: object
+      required: [id, state, origin, config, action_source, tool_name, user_input, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        state: { $ref: '#/components/schemas/EpisodeState' }
+        origin: { $ref: '#/components/schemas/Origin' }
+        config: { $ref: '#/components/schemas/Config' }
+        action_source: { $ref: '#/components/schemas/ActionSource' }
+        tool_name: { type: string }
+        user_input: { type: string }
+        attack_id: { type: [string, 'null'], format: uuid }
+        final_status:
+          oneOf:
+            - { $ref: '#/components/schemas/FinalStatus' }
+            - { type: 'null' }
+        tool_may_run:
+          type: [boolean, 'null']
+          description: False if permission or egress denied the action, even when final_status starts with approved.
+        created_at: { type: string, format: date-time }
+        finished_at: { type: [string, 'null'], format: date-time }
+    Episode:
+      allOf:
+        - { $ref: '#/components/schemas/EpisodeSummary' }
+        - type: object
+          required: [tool_response, session_id, stage_events]
+          properties:
+            tool_response: { type: string }
+            proposed_action: { type: [string, 'null'] }
+            session_id: { type: string }
+            safe_action: { type: [string, 'null'] }
+            error: { type: [string, 'null'] }
+            stage_events:
+              type: array
+              description: In seq order. Each item follows stage_event in stage_event.schema.json.
+              items: { type: object }
+    Attack:
+      type: object
+      required: [id, source, user_task, injected_text, is_benign]
+      properties:
+        id: { type: string, format: uuid }
+        source: { $ref: '#/components/schemas/AttackSource' }
+        attack_type: { type: [string, 'null'] }
+        suite: { type: [string, 'null'] }
+        user_task: { type: string }
+        injected_text: { type: string }
+        proposed_action: { type: [string, 'null'] }
+        target: { type: [string, 'null'] }
+        target_match: { type: [boolean, 'null'] }
+        is_benign: { type: boolean }
+    AttackCreate:
+      type: object
+      additionalProperties: false
+      required: [user_task, injected_text]
+      properties:
+        user_task: { type: string, minLength: 1, maxLength: 10000 }
+        injected_text: { type: string, minLength: 1, maxLength: 100000 }
+        proposed_action: { type: string, maxLength: 2000 }
+        target: { type: string, maxLength: 2000 }
+    AgentRunRequest:
+      type: object
+      additionalProperties: false
+      required: [message_id, user_input, protection]
+      properties:
+        message_id: { type: string, maxLength: 200 }
+        user_input: { type: string, minLength: 1, maxLength: 10000 }
+        protection: { type: boolean }
+        planted_attack_id: { type: string, format: uuid }
+    ProposalSummary:
+      type: object
+      required: [id, status, change, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/ProposalStatus' }
+        change: { type: object }
+        created_at: { type: string, format: date-time }
+    Evidence:
+      type: object
+      description: Recomputed by the server from data. The proposal's own figures are never the evidence.
+      required: [n_episodes, reward_incumbent, reward_proposed, delta, is_regression, is_neutral]
+      properties:
+        n_episodes: { type: integer, minimum: 0 }
+        reward_incumbent: { type: number }
+        reward_proposed: { type: number }
+        delta: { type: number }
+        missed_incumbent: { type: integer }
+        missed_proposed: { type: integer }
+        false_pos_incumbent: { type: integer }
+        false_pos_proposed: { type: integer }
+        workflow_lost_incumbent: { type: integer }
+        workflow_lost_proposed: { type: integer }
+        claim_matches: { type: [boolean, 'null'] }
+        inert_patterns: { type: array, items: { type: string } }
+        is_regression: { type: boolean }
+        is_neutral: { type: boolean }
+    ProposalDetail:
+      allOf:
+        - { $ref: '#/components/schemas/ProposalSummary' }
+        - type: object
+          required: [evidence, warnings, recommendation]
+          properties:
+            evidence: { $ref: '#/components/schemas/Evidence' }
+            warnings: { type: array, items: { type: string } }
+            recommendation: { type: string }
+            decision:
+              oneOf:
+                - { $ref: '#/components/schemas/Approval' }
+                - { type: 'null' }
+    Approval:
+      type: object
+      required: [id, proposal_id, admin_name, decision, reason, decided_at]
+      properties:
+        id: { type: string, format: uuid }
+        proposal_id: { type: string, format: uuid }
+        admin_name: { type: string }
+        decision: { type: string, enum: [approved, rejected] }
+        reason: { type: string }
+        decided_at: { type: string, format: date-time }
+    Policy:
+      type: object
+      required: [blocked_patterns, high_impact_tools, ie_threshold]
+      properties:
+        blocked_patterns: { type: array, items: { type: string } }
+        high_impact_tools: { type: array, items: { type: string } }
+        ie_threshold: { type: number }
+    Rate:
+      type: object
+      required: [k, n, rate, wilson_low, wilson_high]
+      properties:
+        k: { type: integer, minimum: 0 }
+        n: { type: integer, minimum: 0 }
+        rate: { type: [number, 'null'], description: Null when n is 0 }
+        wilson_low: { type: [number, 'null'] }
+        wilson_high: { type: [number, 'null'] }
+    AnalyticsRow:
+      type: object
+      required: [source, config, action_source, asr, detection, fpr, wcr]
+      properties:
+        source: { $ref: '#/components/schemas/AttackSource' }
+        config: { $ref: '#/components/schemas/Config' }
+        action_source: { $ref: '#/components/schemas/ActionSource' }
+        attack_type: { type: [string, 'null'] }
+        suite: { type: [string, 'null'] }
+        target_match: { type: [boolean, 'null'] }
+        asr: { $ref: '#/components/schemas/Rate' }
+        detection: { $ref: '#/components/schemas/Rate' }
+        fpr: { $ref: '#/components/schemas/Rate' }
+        wcr: { $ref: '#/components/schemas/Rate' }

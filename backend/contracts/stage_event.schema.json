@@ -1,0 +1,210 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adaptishield.local/contracts/stage_event.schema.json",
+  "title": "AdaptiShield WebSocket messages",
+  "description": "Every message on WS /ws/episodes. Stage events are also what GET /api/episodes/{id} returns in stage_events, so Replay and the live Monitor read the same shape. Text in detail can be attacker-written: display it as plain text only.",
+  "oneOf": [
+    { "$ref": "#/$defs/auth" },
+    { "$ref": "#/$defs/auth_ok" },
+    { "$ref": "#/$defs/stage_event" },
+    { "$ref": "#/$defs/batch_progress" },
+    { "$ref": "#/$defs/error" }
+  ],
+  "$defs": {
+    "auth": {
+      "description": "Client to server. Must be the first message, within 5 seconds of connecting.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "token"],
+      "properties": {
+        "type": { "const": "auth" },
+        "token": { "type": "string", "minLength": 1 }
+      }
+    },
+    "auth_ok": {
+      "description": "Server to client. Sign-in succeeded; events follow.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "role"],
+      "properties": {
+        "type": { "const": "auth_ok" },
+        "role": { "$ref": "#/$defs/role" }
+      }
+    },
+    "batch_progress": {
+      "description": "Server to client. Attack Lab batch progress (Phase 3).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "batch_id", "done", "total", "attack_succeeded", "attack_stopped"],
+      "properties": {
+        "type": { "const": "batch_progress" },
+        "batch_id": { "type": "string", "format": "uuid" },
+        "done": { "type": "integer", "minimum": 0 },
+        "total": { "type": "integer", "minimum": 0 },
+        "attack_succeeded": { "type": "integer", "minimum": 0 },
+        "attack_stopped": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "error": {
+      "description": "Server to client, sent just before the server closes the connection.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "code", "message"],
+      "properties": {
+        "type": { "const": "error" },
+        "code": { "enum": ["auth_failed", "auth_timeout", "too_slow"] },
+        "message": { "type": "string" }
+      }
+    },
+    "role": { "enum": ["tester", "analyst", "admin"] },
+    "stage": {
+      "enum": ["received", "provenance", "screener", "policy", "causal_check", "sanitizer", "permission", "egress", "sandbox", "final"]
+    },
+    "final_status": {
+      "enum": ["approved_direct", "approved_causal", "safe_continuation", "blocked"]
+    },
+    "probe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["severities", "actions"],
+      "properties": {
+        "severities": { "type": "array", "minItems": 1, "items": { "type": "integer", "minimum": 0, "maximum": 2 } },
+        "actions": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+      }
+    },
+    "stage_event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "episode_id", "seq", "stage", "verdict", "detail", "timestamp"],
+      "properties": {
+        "type": { "const": "stage_event" },
+        "episode_id": { "type": "string", "format": "uuid" },
+        "seq": { "type": "integer", "minimum": 0, "description": "Starts at 0 and rises by one within an episode." },
+        "stage": { "$ref": "#/$defs/stage" },
+        "verdict": {
+          "enum": ["pass", "flag", "route", "approve", "takeover", "nochange", "strip", "block", "skip", "running", "error"]
+        },
+        "detail": { "type": "object" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "allOf": [
+        { "if": { "properties": { "stage": { "const": "received" } } },
+          "then": { "properties": { "verdict": { "const": "pass" }, "detail": { "$ref": "#/$defs/detail_received" } } } },
+        { "if": { "properties": { "stage": { "const": "provenance" } } },
+          "then": { "properties": { "verdict": { "const": "pass" }, "detail": { "$ref": "#/$defs/detail_provenance" } } } },
+        { "if": { "properties": { "stage": { "const": "screener" } } },
+          "then": { "properties": { "verdict": { "enum": ["running", "pass", "flag", "skip"] }, "detail": { "$ref": "#/$defs/detail_screener" } } } },
+        { "if": { "properties": { "stage": { "const": "policy" } } },
+          "then": { "properties": { "verdict": { "enum": ["approve", "route", "block", "skip"] }, "detail": { "$ref": "#/$defs/detail_note" } } } },
+        { "if": { "properties": { "stage": { "const": "causal_check" } } },
+          "then": { "properties": { "verdict": { "enum": ["running", "takeover", "nochange", "skip"] }, "detail": { "$ref": "#/$defs/detail_causal" } } } },
+        { "if": { "properties": { "stage": { "const": "sanitizer" } } },
+          "then": { "properties": { "verdict": { "enum": ["running", "strip", "skip"] }, "detail": { "$ref": "#/$defs/detail_sanitizer" } } } },
+        { "if": { "properties": { "stage": { "enum": ["permission", "egress"] } } },
+          "then": { "properties": { "verdict": { "enum": ["pass", "block", "skip"] }, "detail": { "$ref": "#/$defs/detail_note" } } } },
+        { "if": { "properties": { "stage": { "const": "sandbox" } } },
+          "then": { "properties": { "verdict": { "const": "skip" }, "detail": { "$ref": "#/$defs/detail_note" } } } },
+        { "if": { "properties": { "stage": { "const": "final" } } },
+          "then": { "properties": { "verdict": { "enum": ["pass", "block", "error"] }, "detail": { "$ref": "#/$defs/detail_final" } } } }
+      ]
+    },
+    "detail_received": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tool_name", "config"],
+      "properties": {
+        "tool_name": { "type": "string" },
+        "config": { "enum": ["undefended", "spotlighting", "full"] }
+      }
+    },
+    "detail_provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["trusted_chars", "untrusted_chars"],
+      "properties": {
+        "trusted_chars": { "type": "integer", "minimum": 0 },
+        "untrusted_chars": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "detail_screener": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "note": { "type": "string" },
+        "source": { "type": "string" },
+        "reason": { "type": "string" },
+        "matched_markers": { "type": "array", "items": { "type": "string" } },
+        "injected_spans": { "$ref": "#/$defs/spans" }
+      }
+    },
+    "detail_note": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "note": { "type": "string" },
+        "reason": { "type": "string" }
+      }
+    },
+    "detail_causal": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "note": { "type": "string" },
+        "ace": { "type": "number" },
+        "ie": { "type": "number" },
+        "de": { "type": "number" },
+        "rule": {
+          "enum": ["ie", "standalone", "drift", "none"],
+          "description": "Which takeover rule fired. The Monitor shows this: a takeover does not always mean the two runs differed."
+        },
+        "reason": { "type": "string" },
+        "probes": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["orig", "masked", "masked_sanitized", "orig_sanitized"],
+          "properties": {
+            "orig": { "$ref": "#/$defs/probe" },
+            "masked": { "$ref": "#/$defs/probe" },
+            "masked_sanitized": { "$ref": "#/$defs/probe" },
+            "orig_sanitized": { "$ref": "#/$defs/probe" }
+          }
+        }
+      }
+    },
+    "detail_sanitizer": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "note": { "type": "string" },
+        "instructions_removed": { "type": "array", "items": { "type": "string" } },
+        "facts_preserved": { "type": "array", "items": { "type": "string" } },
+        "safe_action": { "type": "string" },
+        "injected_spans": { "$ref": "#/$defs/spans" }
+      }
+    },
+    "detail_final": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tool_may_run"],
+      "properties": {
+        "final_status": { "$ref": "#/$defs/final_status" },
+        "tool_may_run": {
+          "type": "boolean",
+          "description": "False if permission or egress denied the action, even when final_status starts with approved. Agents must check this field, not the status."
+        },
+        "safe_action": { "type": "string" },
+        "error": { "type": "string" }
+      }
+    },
+    "spans": {
+      "description": "Character ranges in the untrusted content. Only present where the text matched exactly; never guessed.",
+      "type": "array",
+      "items": {
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 2,
+        "items": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

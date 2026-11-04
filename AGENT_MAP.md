@@ -15,9 +15,11 @@ attribute the action **causally** to the untrusted content (Components 3A–3D i
 
 - Runs 100% locally: Ollama models `gemma3:4b` (causal probe — chosen because it *obeys*
   injections) and `qwen2.5:3b` (screener / sanitizer / planner). 4 GB VRAM ceiling.
-- The **detection engine is built and tested** (layers 0–5 + pipeline, 538 deterministic
+- The **detection engine is built and tested** (layers 0–5 + pipeline, 561 deterministic
   tests). The FYP deliverable (FastAPI backend, React dashboard, demo agent, attack lab —
-  `Phase.md` FYP phases 2–6) is **not built yet**. Do not create those dirs until asked.
+  `Phase.md` FYP phases 2–6) is **not built yet**. `backend/`, `agent/`, `attack_lab/` and
+  `frontend/` exist as scaffolds with READMEs; `backend/contracts/` holds the agreed API, event
+  and database design. Do not add service code until asked.
 
 ## Read-first order for a new agent
 
@@ -71,7 +73,7 @@ Layer 4 (permission scope → egress allowlist → optional Docker sandbox) → 
 | `utils/` | `parsing.py` (`extract_next_action` — the only NEXT: parser), `hashing.py` (prompt fingerprints used to refuse stale probe corpora) | |
 | `baselines/` | External comparison baselines. **Never imported by any `layer*/` module** (a test enforces this) | `spotlighting.py` (Hines et al. 2024: delimit/datamark/encode), `text_classifier.py` (numpy TF-IDF + logistic regression) |
 | `red_team/` | Attack campaign loop: Generator → Execution Agent → Evaluator → Optimizer | `attack_library.py` (6 attack families), `attack_generator.py`, `execution_agent.py` (checkpoints per case!), `evaluator.py` (ASR/FPR/WCR), `optimizer.py`, `run_campaign.py`; vendored corpora in `red_team/data/` (`injecagent_dh.json`, `agentdojo_benign.json`, `agentdojo_attacks.json`) + `vendor_*.py` importers |
-| `tests/` | 538 deterministic tests, ~15 s, no Ollama. Read `tests/README.md` — many tests **pin specific shipped bugs** (§6d–§6p), do not "fix" a test without understanding why | one `test_*.py` per phase/instrument; `test_paired.py`, `test_capability_scoring.py` are the biggest |
+| `tests/` | 561 deterministic tests, ~15 s, no Ollama. Read `tests/README.md` — many tests **pin specific shipped bugs** (§6d–§6p), do not "fix" a test without understanding why | one `test_*.py` per phase/instrument; `test_paired.py`, `test_capability_scoring.py` are the biggest |
 | `evaluation/` | All model-dependent experiments live here, never in `tests/` | `benchmark.py` (Phases 7/10/11/12 arms), `probe_corpus.py` (record probe output for offline rescoring), `rescore.py`, `campaign_report.py`, `train_classifier.py`, `multiturn.py`, `model_transfer.py`, `noise_floor.py`, `paired.py` (McNemar), `fpr_report.py` (Wilson CIs, refuses to pool), `kaggle/` (Phase 6 GRPO training: `grpo_env.py`, `grpo_train.py`, `package_episodes.py`, run via `run_kaggle.sh`) |
 
 ### Data & outputs
@@ -124,7 +126,7 @@ Layer 4 (permission scope → egress allowlist → optional Docker sandbox) → 
 
 ## Current state (as of the last handoff)
 
-- 538 tests passing; engine + Layer 5 built; paper/writeup drafted in `docs/`.
+- 561 tests passing; engine + Layer 5 built; paper/writeup drafted in `docs/`.
 - Headline numbers: in-corpus detection 116/120 = 96.7% [91.7%, 98.7%]; external FPR
   3.3% [0.9%, 11.4%] (AgentDojo benign n=60); InjecAgent reported **per stratum, never
   pooled** (93.3% where the target-match fires vs 10.0% where it cannot).

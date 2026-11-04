@@ -1,9 +1,9 @@
 # tests — Automated Test Suite
 
-**Status:** ✅ **538 tests passing** (`test_grpo_kaggle.py` 33, `test_text_classifier.py` 27; 478 before both), ~15 s, no LLM / no network / no GPU
+**Status:** ✅ **561 tests passing** (`test_contracts.py` 23, `test_grpo_kaggle.py` 33, `test_text_classifier.py` 27), ~15 s, no LLM / no network / no GPU
 
 ```bash
-python3 -m pytest tests/ -q          # 538 passed
+python3 -m pytest tests/ -q          # 561 passed
 python3 -m pytest tests/test_layer5.py -v
 ```
 
@@ -17,6 +17,7 @@ python3 -m pytest tests/test_layer5.py -v
 | `test_adaptive_threat_model.py` | 3D's reward, proposal, step sizing, loop-closes (§6d / §6k) | 14 |
 | `test_target_match.py` | Normalized mediator-target match (§6m) + the **keyword grounding** check (§6p) | 21 |
 | `test_probe_diagnostic.py` | The read-only root-cause tool, incl. the classifier-ordering bug that mislabelled 3 healthy probes (§6m) | 11 |
+| `test_contracts.py` | The backend contracts stay valid and agree with the engine: endpoints, roles, verdicts, statuses, setups | 23 |
 | `test_corpus.py` | Corpus invariants, the Wilson interval, the IE-ablation join, and the FPR **staleness guard** (§6n, §6o) | 22 |
 | `test_grpo_kaggle.py` | GRPO env + trainer: threshold replay, reward table, joint action space, tied-reward **no-op guard** (§6l–6n), and the per-epoch metrics: the confusion matrix agrees with the reward's own catch predicate, the P/R/F1/support arithmetic (incl. the empty-split case), the held-out address split pinned to `attack_library`, and the epoch hook **observational** — same chosen action with and without it | 33 |
 | `test_layer5.py` | The human gate + dashboard escaping (§6n) | 20 |
@@ -60,6 +61,7 @@ written against a vague worry usually catches nothing.
 | Test | The defect it pins |
 | :--- | :--- |
 | `test_probe_diagnostic.py` | The diagnostic's own classifier ordered a `severity == 0` check *before* the garbled-address check, so it labelled 3 healthy probes `PROBE_NO_ACTION`. That misdiagnosis would have sent the repair at the probe prompt, which was not at fault. |
+| `test_contracts.py` | The backend contracts stay valid and agree with the engine: endpoints, roles, verdicts, statuses, setups | 23 |
 | `test_corpus.py` | The AgentDojo injection filter first searched for `"{injection"` and matched **nothing** — the real format is `{email_facebook_injection}`. Ten pieces of attack scaffolding would have entered the *benign* denominator. |
 | `test_grpo_kaggle.py` | The trainer proposed a threshold change its own reward table scored **lower** (+0.8683 vs +0.8688), and `apply_update` would have accepted it silently. The tied-reward test asserts a no-op. |
 | `test_target_match.py` | `_references_mediator_target` compared verbatim, and `gemma3:4b` drops the hyphen in `leaker@shadow-mail.net` in **57/57** mentions — one character behind all 15 misses (§6m). Also pins the §6p grounding: a high-impact verb escalates only if the mediator asked for something of that kind. |

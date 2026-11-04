@@ -19,6 +19,10 @@ pytest
 pytest-asyncio
 rich
 
+# tests/test_contracts.py checks the backend contracts
+pyyaml
+jsonschema
+
 # paper build only — figures, decks and the manuscript. Not imported by the
 # pipeline or by the test suite.
 pillow

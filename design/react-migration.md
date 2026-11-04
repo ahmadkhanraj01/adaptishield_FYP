@@ -120,6 +120,8 @@ Then `className="bg-ok-soft border-ok text-ok"` gives the same result as the moc
 
 ## 5. Types (mirror the backend)
 
+> [`backend/contracts/`](../backend/contracts/) is the source of truth for these types. Generate or check them against `stage_event.schema.json` and `openapi.yaml`.
+
 ```ts
 // src/api/types.ts
 export type StageKey =
@@ -133,20 +135,21 @@ export type Verdict =
 export type FinalStatus = 'approved_direct' | 'approved_causal' | 'safe_continuation' | 'blocked';
 
 export interface StageEvent {
+  type: 'stage_event';
   episode_id: string;
   seq: number;
   stage: StageKey;
   verdict: Verdict;
   detail: {
     note?: string;
-    run_a_action?: string;
-    run_b_action?: string;
-    changed?: boolean;
-    rule?: string;
-    injected_spans?: [number, number][];   // character ranges in the untrusted content
+    ace?: number; ie?: number; de?: number;
+    rule?: 'ie' | 'standalone' | 'drift' | 'none';   // always show this: a takeover may not mean the runs differed
+    probes?: Record<'orig' | 'masked' | 'masked_sanitized' | 'orig_sanitized',
+                    { severities: number[]; actions: string[] }>;
+    injected_spans?: [number, number][];   // character ranges in the untrusted content; only where matched exactly
     safe_action?: string;
     final_status?: FinalStatus;
-    delivered?: string;
+    tool_may_run?: boolean;                // false if Layer 4 denied the action, whatever the status says
   };
   timestamp: string;                        // ISO 8601
 }
@@ -168,9 +171,15 @@ export function useEpisodeStream() {
   useEffect(() => {
     let ws: WebSocket, retry = 0, stop = false;
     const connect = () => {
-      ws = new WebSocket(`${WS_BASE}/ws/episodes?token=${getToken()}`);
-      ws.onopen = () => { retry = 0; setStatus('connected'); };
-      ws.onmessage = e => push(JSON.parse(e.data) as StageEvent);
+      ws = new WebSocket(`${WS_BASE}/ws/episodes`);
+      ws.onopen = () => {                     // sign in with the first message, never in the URL
+        ws.send(JSON.stringify({ type: 'auth', token: getToken() }));
+        retry = 0; setStatus('connected');
+      };
+      ws.onmessage = e => {
+        const message = JSON.parse(e.data);
+        if (message.type === 'stage_event') push(message as StageEvent);
+      };
       ws.onclose = () => {
         setStatus('reconnecting');
         if (!stop) setTimeout(connect, Math.min(1000 * 2 ** retry++, 15000));
@@ -256,4 +265,4 @@ Each mockup scenario becomes a list of events. For the "injected email" scenario
 ]
 ```
 
-(`episode_id` and `timestamp` omitted here for brevity; the span range is illustrative.) Store fixtures in `frontend/src/fixtures/` and keep them in sync with the mockup's `SC` data.
+(`episode_id` and `timestamp` omitted here for brevity; the span range is illustrative.) Store fixtures in `frontend/src/fixtures/` and keep them in sync with the mockup's `SC` data. Validate each fixture against `backend/contracts/stage_event.schema.json`; the `causal_check` and `final` details above are simplified, and the schema is the exact form.

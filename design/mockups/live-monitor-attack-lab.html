@@ -252,9 +252,10 @@ select{max-width:100%;padding-right:28px}
     <nav class="nav" aria-label="Modules">
       <button id="nav-monitor" data-view="monitor" aria-current="page"><span class="num">4</span>Live Monitor</button>
       <button id="nav-lab" data-view="lab"><span class="num">2</span>Attack Lab</button>
-      <button disabled title="Not part of this mockup"><span class="num">1</span>Demo Agent</button>
-      <button disabled title="Not part of this mockup"><span class="num">5</span>Admin Console</button>
-      <button disabled title="Not part of this mockup"><span class="num">5</span>Analytics</button>
+      <button onclick="location.href='admin-analytics-agent-login.html#history'"><span class="num">4</span>Episode history</button>
+      <button onclick="location.href='admin-analytics-agent-login.html#agent'"><span class="num">1</span>Demo Agent</button>
+      <button onclick="location.href='admin-analytics-agent-login.html#admin'"><span class="num">5</span>Admin Console</button>
+      <button onclick="location.href='admin-analytics-agent-login.html#analytics'"><span class="num">5</span>Analytics</button>
     </nav>
     <div class="side-foot">
       <div class="conn"><span class="pulse"></span>ws /ws/episodes</div>
@@ -730,6 +731,7 @@ playMonitor(SC[0], true).then(() => { $("ep-chip").className = "chip done"; $("e
   setCaption("Decision", "Injection removed, task continued. Press Replay to watch it again."); });
 playLab(attacks[0], true);
 setTimeout(() => playMonitor(byId(sel.value)), 1200);
+if (location.hash === "#lab") document.getElementById("nav-lab").click();
 </script>
 </body>
 </html>

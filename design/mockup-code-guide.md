@@ -1,6 +1,6 @@
 # Mockup Code Guide
 
-How [`mockups/live-monitor-attack-lab.html`](mockups/live-monitor-attack-lab.html) is built, and how to extend it. The file is plain HTML + CSS + vanilla JavaScript with no libraries and no build step, so anyone on the team can edit it and refresh the browser.
+How [`mockups/live-monitor-attack-lab.html`](mockups/live-monitor-attack-lab.html) is built, and how to extend it. The second file, [`mockups/admin-analytics-agent-login.html`](mockups/admin-analytics-agent-login.html), uses the same tokens and classes. It builds every page with its `h()` helper, which only creates text nodes, and each page has one `render…()` function. The file is plain HTML + CSS + vanilla JavaScript with no libraries and no build step, so anyone on the team can edit it and refresh the browser.
 
 ---
 
@@ -226,6 +226,6 @@ Edit the tokens in the `:root` block **and** both dark blocks (see [design-syste
 | Nine stages hard-coded in CSS | Stages are fixed by the architecture; React computes it from the array |
 | Fake timing (fixed waits) | Real timing comes from event timestamps |
 | Fake stats (`calls`, `lat` in data) | Real values come from the episode |
-| Only two of five pages | See [screens.md](screens.md) §8 |
+| Two files with copied CSS | Fine for mockups; React shares one stylesheet |
 | No theme toggle | Tokens already support `data-theme`; add a toggle button in React |
 | Google Fonts needs internet | Self-host with `@fontsource` in React |
